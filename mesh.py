@@ -42,7 +42,7 @@ class Edge:
         self.v1 = end_point1
         self.v2 = end_point2
         self.tetrahedron_neighbours = set()
-        self.tetrahedron = -1
+        self.first_tetra = -1
         self.is_boundary = -1
         self.tetrahedrons = []
         # Length is saved for the polyhedralization process
@@ -117,7 +117,7 @@ class TetrahedronMesh:
                 e2 = int(line[2])
                 current_edge = Edge(i, e1, e2)
                 current_edge.is_boundary = True if line[3] == 1 else False
-                current_edge.tetrahedron = int(line[4])
+                current_edge.first_tetra = int(line[4])
                 edge_list.append(current_edge)
         return edge_list
 
@@ -175,6 +175,12 @@ class TetrahedronMesh:
                     tetra_edges_aux.append(edge_list[edge_index].i)
                 tetra.edges.extend(tetra_edges_aux)
             tetra.edges = [*set(tetra.edges)]
+
+        # Get list of tetrahedrons adjancetos to each edge
+        for edge in edge_list:
+            for tetra in tetra_list:
+                if edge.i in tetra.edges:
+                    edge.tetrahedrons.append(tetra.i)
 
         # Imprime los tetrahedros
         for t in range(0, len(tetra_list)):

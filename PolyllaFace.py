@@ -1,6 +1,8 @@
 from mesh import TetrahedronMesh
 import numpy as np
 import sys
+from collections import Counter
+
 
 class PolyllaFace:
     def __init__(self, mesh):
@@ -177,5 +179,13 @@ if __name__ == "__main__":
         print(polylla_mesh.polyhedron_mesh[i])
         polylla_mesh.printOFF_faces(folder + "polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
     
-    polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
-    polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
+    #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
+    #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
+
+    print(polylla_mesh.polyhedron_mesh)
+    ## detect repeated face in polyhgons from polyhedron_mesh
+    repeated_faces = []
+    for i in range(0, len(polylla_mesh.polyhedron_mesh)):
+            print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
+            print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])
+    

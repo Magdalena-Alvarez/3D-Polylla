@@ -273,66 +273,6 @@ def store_edges_in_faces(list_faces : List[Face], list_edges : List[Edge]):
         #print(face.edges)
 
 
-# Depth first search on the tetrahedral mesh:
-# Pseudocode
-# DFS(tetra_mesh, edge, list of terminal edge regions):
-#     for each T in tetra_mesh.edge_list[edge.index].tetrahedrons: (list of tetrahedrons adjacent to e)
-#         if T hasn't been visited:
-#             Terminal_edge_region.append(T)
-#             T.is_used = true
-#             for each edge e in T.edge:
-#                 DFS(tetra_mesh, e, Terminal_edge_region)
-#TODO: FIX , it generates empty terminal edges.
-def dfs_on_tetrahedral_mesh(tetra_mesh : TetrahedronMesh, e : Edge, terminal_edge_list : List[TerminalEdge]): #, index_seed: int):
-    j = -1
-    stack = []
-    current_edge = e
-    stack.append(current_edge)
-    while len(stack):
-        #print(f"La lista de tetraedros del edge {current_edge.i} es {[x.i for x in current_edge.tetrahedron_list]}")
-        #print(f"j es igual a {j}")
-        # for each tetrahedron that contains the current edge
-        current_edge = stack[len(stack)-1]
-        first_tetra_flag = False # Flag for checking if this is the first tetrahedron that we haven't visited, thus needing a new TerminalEdge
-        for tetrahedron in tetra_mesh.edge_list[current_edge.i].tetrahedron_list:
-            added = False
-            # if we haven't visited that tetrahedron yet, we add it to the terminal_edge
-            if not tetrahedron.visited:
-                if first_tetra_flag == False:
-                    terminal_edge_list.append(TerminalEdge())
-                    first_tetra_flag = True
-                    terminal_edge_list[j].tetrahedrons[tetrahedron.i] = tetrahedron
-                    added = True
-                    j += 1
-                #print(f"La lista de caras del tetrahedro {tetrahedron.i} es {tetrahedron.faces}")
-                if added == False: terminal_edge_list[j].tetrahedrons[tetrahedron.i] = tetrahedron
-                tetrahedron.visited = True
-                #terminal_edge
-                longest_edge_for_current_tetrahedron = tetra_mesh.longest_edges[tetrahedron.i]
-                #Falta un criterio para terminar el poliedro.
-                # here we want to analize the rest of the edges of the tetrahedron
-                # I need to refactor this
-                for edge in tetrahedron.edges:
-                    if edge != e.i:
-                        # append used_edge
-                        stack.append(tetra_mesh.edge_list[edge])
-        stack.remove(current_edge)
-        
-        
-        #jank solution
-        # for te in terminal_edge_list:
-        #     if te.tetrahedrons:
-        #         pass
-        #     else:
-        #         terminal_edge_list.remove(te)
-
-                    #dfs_on_tetrahedral_mesh(tetra_mesh, tetra_mesh.edge_list[edge], poly_list) # this will make one giant polyhedron, we want multiple polyhedra
-            # longest_edge = max(tetrahedron.edges 
-            # Falta sacar los edges mas largos de la funcion make_tetrahedral_mesh
-            #for edge in tetrahedron.edges
-    # print(poly.tetrahedrons.keys())
-
-
 #dfs recursivo original
 def dfs_on_tetrahedral_mesh_recursive(tetra_mesh : TetrahedronMesh, e : Edge, terminal_edge : TerminalEdge): #, index_seed: int):
     for i, tetrahedron in enumerate(tetra_mesh.edge_list[e.i].tetrahedron_list):
