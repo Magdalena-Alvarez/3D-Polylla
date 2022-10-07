@@ -272,5 +272,5 @@ if __name__ == "__main__":
     for i in range(0,20):
 	    polyhedron = generate_polyhedra_from_terminal_face(terminal_faces[i], bitvector_frontier_edges, mesh)
     #print("f1", terminal_faces[1].v1, terminal_faces[1].v2, terminal_faces[1].v3, "f2", terminal_faces[19].v1, terminal_faces[19].v2, terminal_faces[19].v3)
-	    printOFF_faces(filename + "_" + str(i) + "_poly.off", mesh.node_list, polyhedron)
+    #printOFF_faces(filename + "_" + str(i) + "_poly.off", mesh.node_list, polyhedron)
 

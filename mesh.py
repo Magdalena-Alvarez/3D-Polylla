@@ -6,14 +6,14 @@ import sys
 import math
 
 
-class vertex:
+class Vertex:
     def __init__(self, i, x, y, z):
-        self.i = i
+        self.i = i  
         self.x = x
         self.y = y
         self.z = z
 
-class face:
+class Face:
     def __init__(self, i, v1, v2, v3, boundary, n1, n2 ):
         self.i = i
         self.v1 = v1
@@ -65,7 +65,7 @@ class TetrahedronMesh:
             line = line.split()
             #v1, v2, v3, boundary_marker
             if line[0] != '#':
-                node_temp = vertex(int(line[0]), float(line[1]), float(line[2]), float(line[3]))
+                node_temp = Vertex(int(line[0]), float(line[1]), float(line[2]), float(line[3]))
                 node_list.append(node_temp)
         f.close()
         return node_list
@@ -85,7 +85,7 @@ class TetrahedronMesh:
                 boundary_marker = (int(line[4]) == 1 or int(line[4]) == -1)
                 n1 = int(line[5])
                 n2 = int(line[6])
-                face_temp = face(int(line[0]), v1, v2, v3, boundary_marker, n1, n2)
+                face_temp = Face(int(line[0]), v1, v2, v3, boundary_marker, n1, n2)
                 face_list.append(face_temp)
         f.close()
         return face_list
@@ -105,6 +105,7 @@ class TetrahedronMesh:
         return tetrahedron_list
 
     def read_edge_file(self, filename):
+        print("reading edge file: "+ filename)
         edge_list = []
         with open(filename, 'r') as file:
             for i, line in enumerate(file):
@@ -155,7 +156,7 @@ class TetrahedronMesh:
                 #tetra_list[neigh2].is_boundary = face_list[f].is_boundary
             #falta agregar el caso de que sea una cara de borde
 
-        # Calcula los tetrahedros vecinos and the edges of each tetrahedron
+        # Calcula los tetrahedros vecinos
         for tetra in tetra_list:
             for f in tetra.faces:
                 face = face_list[f]
@@ -163,7 +164,11 @@ class TetrahedronMesh:
                 curr_tetra = tetra.i
                 neigh_tetra = neighs[0] if neighs[0] != curr_tetra else neighs[1]
                 tetra.neighs.append(neigh_tetra)
-
+        
+        #Find the edges of each tetrahedron
+        for tetra in tetra_list:
+            for f in tetra.faces:
+                face = face_list[f]
                 ## add edges to tetrahedron
                 tetra_edges_aux = []
                 for edge_index in face.edges:
@@ -175,11 +180,22 @@ class TetrahedronMesh:
         for t in range(0, len(tetra_list)):
             print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
 
+
         return node_list, face_list, tetra_list, edge_list
 
+    def get_face(self, f):
+        return self.face_list[f].i
+    
+    def get_edge(self, e):
+        return self.edge_list[e].i
+
+    def get_tetrahedron(self,t):
+        return self.tetra_list(t).i
+    
+    def get_vertex(self, v):
+        return self.node_list[v].i
 
 if __name__ == "__main__":
-    
     filename = "data\\3D_100.1"
     node_file = filename + ".node"
     ele_file = filename + ".ele"
