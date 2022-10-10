@@ -201,6 +201,13 @@ class TetrahedronMesh:
     def get_vertex(self, v):
         return self.node_list[v].i
 
+    def get_info(self):
+        print("Tetrahedral mesh info:")
+        print("Number of nodes: ", len(self.node_list))
+        print("Number of faces: ", len(self.face_list))
+        print("Number of tetrahedrons: ", len(self.tetra_list))
+        print("Number of edges: ", len(self.edge_list))
+
 if __name__ == "__main__":
     filename = "data\\3D_100.1"
     node_file = filename + ".node"

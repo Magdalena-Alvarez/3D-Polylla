@@ -147,6 +147,12 @@ class PolyllaEdge:
                     v3 = self.mesh.face_list[f].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))    
 
+    def get_info(self):
+        print("Number of nodes: ", len(mesh.node_list))
+        print("Number of faces: ", len(mesh.face_list))
+        print("Number of edges: ", len(mesh.edge_list))
+        print("Number of tetrahedrons: ", len(self.mesh.tetra_list))
+        print("Number of polyhedrons:", len(self.polyhedron_mesh))
 
 if __name__ == "__main__":
     folder = "data\\"
@@ -166,6 +172,7 @@ if __name__ == "__main__":
         print(polylla_mesh.polyhedron_mesh[i])
         polylla_mesh.printOFF_faces(file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
     
+    polylla_mesh.get_info()
     #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
     #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
 
