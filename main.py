@@ -14,5 +14,11 @@ if __name__ == "__main__":
 
     print("reading files" + node_file + edge_file + face_file + edge_file)
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
-    print("Mesh generated")
-    polylla_mesh = PolyllaEdge(mesh)
+    
+    polyllaEdge_mesh = PolyllaEdge(mesh)
+    PolyllaFace_mesh = PolyllaFace(mesh)
+    
+    mesh.get_info()
+    polyllaEdge_mesh.get_info()
+    PolyllaFace_mesh.get_info()
+

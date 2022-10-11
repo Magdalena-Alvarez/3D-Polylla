@@ -19,7 +19,9 @@ class PolyllaFace:
             self.DepthFirstSearch(polyhedron, terminal_tetra)
             self.polyhedron_mesh.append(polyhedron)
 
-        
+        self.n_barrier_faces = 0
+        self.polyhedra_with_barriers = 0
+        self.detect_barrierFaces()       
 
     def calculate_area_triangle_3d(self, v1, v2, v3):
         av1 = np.array([v1.x, v1.y, v1.z])
@@ -28,14 +30,15 @@ class PolyllaFace:
         a = np.linalg.norm(np.cross(av2-av1, av3-av1))
         return a
 
+    # Esto puede ser un escrito en dos lineas
     def calculate_max_faces(self):
         longest = []
         for tetra in self.mesh.tetra_list:
             # Calcula el area de cada cara
-            f1 = mesh.face_list[tetra.faces[0]]
-            f2 = mesh.face_list[tetra.faces[1]]
-            f3 = mesh.face_list[tetra.faces[2]]
-            f4 = mesh.face_list[tetra.faces[3]]
+            f1 = self.mesh.face_list[tetra.faces[0]]
+            f2 = self.mesh.face_list[tetra.faces[1]]
+            f3 = self.mesh.face_list[tetra.faces[2]]
+            f4 = self.mesh.face_list[tetra.faces[3]]
 
 
             a0 = self.calculate_area_triangle_3d(self.mesh.node_list[f1.v1], self.mesh.node_list[f1.v2], self.mesh.node_list[f1.v3])
@@ -93,8 +96,8 @@ class PolyllaFace:
                 seed_tetra.append(n1)
             #if both are not -1, check if n1 and n2 are the longest face of its tetrahedron
             else:
-                longest_face_n1 = mesh.tetra_list[n1].faces[self.longest_faces[n1]]
-                longest_face_n2 = mesh.tetra_list[n2].faces[self.longest_faces[n2]]
+                longest_face_n1 = self.mesh.tetra_list[n1].faces[self.longest_faces[n1]]
+                longest_face_n2 = self.mesh.tetra_list[n2].faces[self.longest_faces[n2]]
                 # Si no es la cara más larga de ningún tetra de n1 o n2, es una frontier-edge
                 if f == longest_face_n1 and f == longest_face_n2:
                     seed_tetra.append(n1)
@@ -113,8 +116,8 @@ class PolyllaFace:
             if n1 == -1 or n2 == -1:
                 frontier_faces.append(True) # True para imprimir caras de borde
             else: 
-                longest_face_n1 = mesh.tetra_list[n1].faces[self.longest_faces[n1]]
-                longest_face_n2 = mesh.tetra_list[n2].faces[self.longest_faces[n2]]
+                longest_face_n1 = self.mesh.tetra_list[n1].faces[self.longest_faces[n1]]
+                longest_face_n2 = self.mesh.tetra_list[n2].faces[self.longest_faces[n2]]
 
                 # Si no es la cara más larga de ningún tetra de n1 o n2, es una frontier-edge
                 frontier_faces.append(f != longest_face_n1 and f != longest_face_n2)
@@ -165,6 +168,19 @@ class PolyllaFace:
                     v3 = self.mesh.face_list[f].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
+    def detect_barrierFaces(self):
+        for poly in self.polyhedron_mesh:
+            repeated = [k for k, v in Counter(poly).items() if v > 1]
+            if(len(repeated) > 0):
+                self.n_barrier_faces += len(repeated)
+                self.polyhedra_with_barriers += 1
+    
+    def get_info(self):
+        print("PolyllaFace info:")
+        print("Number of polyhedrons: " + str(len(self.polyhedron_mesh)))
+        print("Number of barrier faces: " + str(self.n_barrier_faces))
+        print("Number of polyhedra with barrier faces: " + str(self.polyhedra_with_barriers))
+
 if __name__ == "__main__":
     folder = "data\\"
     filename = folder + "3D_100.1"
@@ -184,8 +200,9 @@ if __name__ == "__main__":
 
     print(polylla_mesh.polyhedron_mesh)
     ## detect repeated face in polyhgons from polyhedron_mesh
-    repeated_faces = []
-    for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-            print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
-            print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])
-    
+    #repeated_faces = []
+    #for i in range(0, len(polylla_mesh.polyhedron_mesh)):
+    #        print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
+    #        print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])
+
+    polylla_mesh.detect_barrierFaces() 

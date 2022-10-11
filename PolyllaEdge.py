@@ -148,10 +148,7 @@ class PolyllaEdge:
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))    
 
     def get_info(self):
-        print("Number of nodes: ", len(mesh.node_list))
-        print("Number of faces: ", len(mesh.face_list))
-        print("Number of edges: ", len(mesh.edge_list))
-        print("Number of tetrahedrons: ", len(self.mesh.tetra_list))
+        print("PolyllaEdge info:")
         print("Number of polyhedrons:", len(self.polyhedron_mesh))
 
 if __name__ == "__main__":
