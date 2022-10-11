@@ -121,7 +121,16 @@ class TetrahedronMesh:
                 edge_list.append(current_edge)
         return edge_list
 
-    def store_edges_in_faces(self, face_list, edge_list):
+
+        
+    def construct_tetrahedral_mesh(self, node_file, face_file, ele_file, edge_file):
+        node_list = self.read_node_file(node_file)
+        face_list = self.read_face_file(face_file)
+        tetra_list = self.read_ele_file(ele_file)
+        edge_list = self.read_edge_file(edge_file)
+
+        # asign to each face their edges
+        #CAMBIAR POR ALGO MAS EFICIENTE, no O(n^2)
         for face in face_list:
             e1 = (face.v1, face.v2)
             e2 = (face.v2, face.v3)
@@ -135,13 +144,6 @@ class TetrahedronMesh:
                     face.edges.append(edge.i)
                 #agregar que si len(face.edges == 3) se para esto
             #print("face " + str(face.i) + " has this edges " + str(face.edges))
-        
-    def construct_tetrahedral_mesh(self, node_file, face_file, ele_file, edge_file):
-        node_list = self.read_node_file(node_file)
-        face_list = self.read_face_file(face_file)
-        tetra_list = self.read_ele_file(ele_file)
-        edge_list = self.read_edge_file(edge_file)
-        self.store_edges_in_faces(face_list, edge_list)
         
 
         # add the faces of each tetrahedron
