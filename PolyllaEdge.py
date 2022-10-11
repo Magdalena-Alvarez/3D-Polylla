@@ -6,10 +6,11 @@ class PolyllaEdge:
     def __init__(self, mesh):
         self.mesh = mesh
         self.calculate_edges_length()
-        self.calculate_tetrahedrons_for_edge()
+        # use to check if the order of in which the edges are join is important or not
+        # by defect the list of tetrahedros is of each edge is in counterclockwise order, this function do a random order
+        #self.calculate_tetrahedrons_for_edge()  
 
         #Sort edges by length longest to shortest
-
         #Cambiar a futuro por algo que genere una lista de indice sin tener que primero crear una una lista de objetos
         self.edges_sorted_by_length = sorted(self.mesh.edge_list, key=lambda edge: edge.length, reverse=True)
         for e in range(0,len(self.edges_sorted_by_length)):

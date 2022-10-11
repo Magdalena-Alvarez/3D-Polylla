@@ -16,9 +16,9 @@ if __name__ == "__main__":
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
     
     polyllaEdge_mesh = PolyllaEdge(mesh)
-    PolyllaFace_mesh = PolyllaFace(mesh)
+    polyllaFace_mesh = PolyllaFace(mesh)
     
     mesh.get_info()
     polyllaEdge_mesh.get_info()
-    PolyllaFace_mesh.get_info()
+    polyllaFace_mesh.get_info()
 

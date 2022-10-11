@@ -116,7 +116,7 @@ class TetrahedronMesh:
                 e1 = int(line[1])
                 e2 = int(line[2])
                 current_edge = Edge(i, e1, e2)
-                current_edge.is_boundary = True if line[3] == 1 else False
+                current_edge.is_boundary = True if int(line[3]) == 1 else False
                 current_edge.first_tetra = int(line[4])
                 edge_list.append(current_edge)
         return edge_list
@@ -142,19 +142,22 @@ class TetrahedronMesh:
         tetra_list = self.read_ele_file(ele_file)
         edge_list = self.read_edge_file(edge_file)
         self.store_edges_in_faces(face_list, edge_list)
+        
 
-        # Calculas caras de cada tetrahedro
+        # add the faces of each tetrahedron
         for f in range(0, len(face_list)):
             # Calcula neigh tetrahedras from faces
             neigh1 = face_list[f].n1
             neigh2 = face_list[f].n2
             if neigh1 != -1:
                 tetra_list[neigh1].faces.append(f)
-                #tetra_list[neigh1].is_boundary = face_list[f].is_boundary
             if neigh2 != -1:
                 tetra_list[neigh2].faces.append(f)
-                #tetra_list[neigh2].is_boundary = face_list[f].is_boundary
-            #falta agregar el caso de que sea una cara de borde
+            #Se marca si un tetra es boundary
+            if neigh1 == -1:
+                tetra_list[neigh2].is_boundary = True
+            if neigh2 == -1:
+                tetra_list[neigh1].is_boundary = True
 
         # Calcula los tetrahedros vecinos
         for tetra in tetra_list:
@@ -177,17 +180,75 @@ class TetrahedronMesh:
             tetra.edges = [*set(tetra.edges)]
 
         # Get list of tetrahedrons adjancetos to each edge
+        #CAMBIAR A UNA WEA QUE NO SEA O(N^2)
+        # se me olvido porqué puse esto aquí
+#        for edge in edge_list:
+#            for tetra in tetra_list:
+#                if edge.i in tetra.edges:
+#                    edge.tetrahedrons.append(tetra.i)
+
+        # Calculate border tetrahedron adjacent to each edge
+        for tetra in tetra_list:
+            for edge in tetra.edges:
+                if tetra.is_boundary:
+                    edge_list[edge].first_tetra = tetra.i
+
+        # Calculate all the tetrahedrons adjacent to each edge in order
         for edge in edge_list:
-            for tetra in tetra_list:
-                if edge.i in tetra.edges:
-                    edge.tetrahedrons.append(tetra.i)
+            self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
 
         # Imprime los tetrahedros
         for t in range(0, len(tetra_list)):
             print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
 
-        
+        #self.calculate_tetrahedrons_for_edge(edge_list, tetra_list, edge_list)
+
         return node_list, face_list, tetra_list, edge_list
+
+    # Circle around an edge e to find their adjacent tetrahedrons and store in order
+    def tetrahedrons_adjcacents_to_edge(self, edge, tetra_list, face_list, edge_list):
+        tetra_origin = edge_list[edge].first_tetra
+        tetras = [tetra_origin]
+        # Search face adjacent to tetra_origin that contains edge
+        f = []
+        for face in tetra_list[tetra_origin].faces:
+            if edge in face_list[face].edges:
+                f.append(face)
+        #t_next = tetra adjcaent to f_origin that is not tetra_origin and is not boundary
+        tetra_1 = face_list[f[0]].n1 if face_list[f[0]].n1 != tetra_origin else face_list[f[0]].n2
+        tetra_2 = face_list[f[1]].n1 if face_list[f[1]].n1 != tetra_origin else face_list[f[1]].n2
+        if tetra_1 == -1:
+            tetra_next = tetra_2
+            f_next = f[1]
+        else:
+            tetra_next = tetra_1
+            f_next = f[0]
+        #print("edge: ", edge, " border ", edge_list[edge].is_boundary ," tetra_origin: ", tetra_origin, " tetra_next: ", tetra_next, edge_list[edge].tetrahedrons)
+        while tetra_next != tetra_origin:
+            if tetra_next == -1:
+                break
+            tetras.append(tetra_next)
+            #face that contains edge and is not f_origin
+            for face in tetra_list[tetra_next].faces:
+                if edge in face_list[face].edges and face != f_next:
+                    f_next = face
+                    break
+            tetra_next = face_list[f_next].n1 if face_list[f_next].n1 != tetra_next else face_list[f_next].n2
+        # if there is a -1 in tetras, it means that the edge is a border, so we cicle around the other way
+        edge_list[edge].tetrahedrons = tetras
+
+
+    # Calculate a list of tetrahedrons adjacent to each edge
+    # only use this functions when you have edges adjacents to two tetrahedrons but no adjacent by any face
+    def calculate_tetrahedrons_for_edge(self, edge_list, tetra_list):
+        for tetra in tetra_list:
+            for edge in tetra.edges:
+                edge_list[edge].tetrahedrons.append(tetra.i)
+                if tetra.is_boundary:
+                    edge_list[edge].first_tetra = tetra.i
+        #remove repeat tetrahedrons from edges
+        for edge in edge_list:
+            edge.tetrahedrons = [*set(edge.tetrahedrons)]    
 
     def get_face(self, f):
         return self.face_list[f].i
