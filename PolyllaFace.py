@@ -9,6 +9,7 @@ class PolyllaFace:
         self.mesh = mesh
         self.n_barrier_faces = 0
         self.polyhedra_with_barriers = 0
+        self.calculate_area_triangle_3d()
         self.longest_faces = self.calculate_max_faces()
         self.seed_tetra = self.calculate_seed_tetrahedrons()
         self.bitvector_frontier_edges = self.calculate_frontier_faces()
@@ -46,39 +47,38 @@ class PolyllaFace:
             if L2 - L1 == L2 - 1:
                 print(e, "is a barrier-face tip")
 
-    def calculate_area_triangle_3d(self, v1, v2, v3):
-        av1 = np.array([v1.x, v1.y, v1.z])
-        av2 = np.array([v2.x, v2.y, v2.z])
-        av3 = np.array([v3.x, v3.y, v3.z])
-        a = np.linalg.norm(np.cross(av2-av1, av3-av1))
-        return a
+    def calculate_area_triangle_3d(self):
+        for face in self.mesh.face_list:
+            v1 = self.mesh.node_list[face.v1]
+            v2 = self.mesh.node_list[face.v2]
+            v3 = self.mesh.node_list[face.v3]
+            av1 = np.array([v1.x, v1.y, v1.z])
+            av2 = np.array([v2.x, v2.y, v2.z])
+            av3 = np.array([v3.x, v3.y, v3.z])
+            area = np.linalg.norm(np.cross(av2-av1, av3-av1))
+            face.area = area
 
     # Esto puede ser un escrito en dos lineas
     def calculate_max_faces(self):
         longest = []
         for tetra in self.mesh.tetra_list:
             # Calcula el area de cada cara
-            f1 = self.mesh.face_list[tetra.faces[0]]
-            f2 = self.mesh.face_list[tetra.faces[1]]
-            f3 = self.mesh.face_list[tetra.faces[2]]
-            f4 = self.mesh.face_list[tetra.faces[3]]
+            a0 = self.mesh.face_list[tetra.faces[0]].area
+            a1 = self.mesh.face_list[tetra.faces[1]].area
+            a2 = self.mesh.face_list[tetra.faces[2]].area
+            a3 = self.mesh.face_list[tetra.faces[3]].area
 
-
-            a0 = self.calculate_area_triangle_3d(self.mesh.node_list[f1.v1], self.mesh.node_list[f1.v2], self.mesh.node_list[f1.v3])
-            a1 = self.calculate_area_triangle_3d(self.mesh.node_list[f2.v1], self.mesh.node_list[f2.v2], self.mesh.node_list[f2.v3])
-            a2 = self.calculate_area_triangle_3d(self.mesh.node_list[f3.v1], self.mesh.node_list[f3.v2], self.mesh.node_list[f3.v3])
-            a3 = self.calculate_area_triangle_3d(self.mesh.node_list[f4.v1], self.mesh.node_list[f4.v2], self.mesh.node_list[f4.v3])
-
-            if a0 >= a1 and a0 >= a2 and a0 >= a3:
+            maxFace = max(a0, a1, a2, a3)
+            if maxFace == a0:
                 longest.append(0)
-            elif a1 >= a0 and a1 >= a2 and a1 >= a3:
+            elif maxFace == a1:
                 longest.append(1)
-            elif a2 >= a0 and a2 >= a1 and a2 >= a3:
+            elif maxFace == a2:
                 longest.append(2)
-            elif a3 >= a0 and a3 >= a1 and a3 >= a2:
+            elif maxFace == a3:
                 longest.append(3)
             else:
-                print("Error")
+                print("Error en la funcion calculate_max_faces")
         return longest   
 
     # Retorna la cara maś larga como objeto cara

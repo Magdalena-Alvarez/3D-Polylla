@@ -23,6 +23,7 @@ class Face:
         self.n1 = n1
         self.n2 = n2
         self.edges = []
+        self.area = -1
 
 class Tetrahedron:
     def __init__(self, i, v1, v2, v3, v4):
