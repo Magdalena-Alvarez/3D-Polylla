@@ -7,21 +7,44 @@ from collections import Counter
 class PolyllaFace:
     def __init__(self, mesh):
         self.mesh = mesh
-        
+        self.n_barrier_faces = 0
+        self.polyhedra_with_barriers = 0
         self.longest_faces = self.calculate_max_faces()
         self.seed_tetra = self.calculate_seed_tetrahedrons()
         self.bitvector_frontier_edges = self.calculate_frontier_faces()
 
         self.visited_tetra = [False] * mesh.n_tetrahedrons
-        self.polyhedron_mesh = []        
+        self.polyhedron_mesh = []
+        count = 0        
         for terminal_tetra in self.seed_tetra:
             polyhedron = []
             self.DepthFirstSearch(polyhedron, terminal_tetra)
             self.polyhedron_mesh.append(polyhedron)
+            barrierFaces = self.count_barrierFaces(polyhedron)
+            if barrierFaces > 0:
+                print("Polyhedron ", count, " has barrier faces")
+                self.detectBarrierFaceTips(polyhedron)       
+            count += 1
 
-        self.n_barrier_faces = 0
-        self.polyhedra_with_barriers = 0
-        self.detect_barrierFaces()       
+    def detectBarrierFaceTips(self, terminalFace):
+        #print("Detecting barrier faces of terminalFace: ", terminalFace)    
+        #list of all reapeted faces
+        barrierFaces = [k for k, v in Counter(terminalFace).items() if v > 1]
+        #List of all edges of the barrier faces
+        possibleTips = set()
+        #print("barrierFaces: ", barrierFaces)
+        for face in barrierFaces:
+            possibleTips.update(self.mesh.face_list[face].edges)
+        possibleTips = list(possibleTips)
+        #print("possibleTips: ", possibleTips)   
+        for e in possibleTips:
+            face_of_edge = self.mesh.edge_list[e].faces
+            #print("face_of_edge: ", face_of_edge)
+            #print("L1 ", list(set(face_of_edge) & set(terminalFace)))
+            L1 = len(list(set(face_of_edge) & set(terminalFace)))
+            L2 = len(terminalFace)
+            if L2 - L1 == L2 - 1:
+                print(e, "is a barrier-face tip")
 
     def calculate_area_triangle_3d(self, v1, v2, v3):
         av1 = np.array([v1.x, v1.y, v1.z])
@@ -81,6 +104,8 @@ class PolyllaFace:
 
         return terminal_faces
 
+
+
     def calculate_seed_tetrahedrons(self):
         seed_tetra = []
         for f in range(0, self.mesh.n_faces):
@@ -124,13 +149,14 @@ class PolyllaFace:
             
         return frontier_faces
 
+    # return list of faces 
     def DepthFirstSearch(self, polyhedron, tetra):
         self.visited_tetra[tetra] = True
         ## for each face of tetra
         for i in range(0, 4):
             face_id = self.mesh.tetra_list[tetra].faces[i]
             tetra_neighs = self.mesh.tetra_list[tetra].neighs
-            print(tetra_neighs)
+            #print(tetra_neighs)
             if face_id != -1:
                 if self.bitvector_frontier_edges[face_id] == True:
                     polyhedron.append(face_id)
@@ -168,18 +194,24 @@ class PolyllaFace:
                     v3 = self.mesh.face_list[f].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
-    def detect_barrierFaces(self):
-        for poly in self.polyhedron_mesh:
-            repeated = [k for k, v in Counter(poly).items() if v > 1]
-            if(len(repeated) > 0):
-                self.n_barrier_faces += len(repeated)
-                self.polyhedra_with_barriers += 1
-    
+    def count_barrierFaces(self, polyhedron):
+        repeated = [k for k, v in Counter(polyhedron).items() if v > 1]
+        if(len(repeated) > 0):
+            self.n_barrier_faces += len(repeated)
+            self.polyhedra_with_barriers += 1
+        return len(repeated)
+
+
     def get_info(self):
         print("PolyllaFace info:")
         print("Number of polyhedrons: " + str(len(self.polyhedron_mesh)))
         print("Number of barrier faces: " + str(self.n_barrier_faces))
         print("Number of polyhedra with barrier faces: " + str(self.polyhedra_with_barriers))
+        num_of_tetra = 0
+        for i in range(0, len(self.polyhedron_mesh)):
+            if len(self.polyhedron_mesh[i]) == 4:
+                num_of_tetra += 1
+        print("Number of polyhedrons that are tetrahedrons: " + str(num_of_tetra))
 
 if __name__ == "__main__":
     folder = "data\\"
@@ -192,17 +224,17 @@ if __name__ == "__main__":
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
     polylla_mesh = PolyllaFace(mesh)
     for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-        print(polylla_mesh.polyhedron_mesh[i])
+        #print(polylla_mesh.polyhedron_mesh[i])
         polylla_mesh.printOFF_faces(folder + "polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
     
     #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
     #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
 
-    print(polylla_mesh.polyhedron_mesh)
+    #print(polylla_mesh.polyhedron_mesh)
     ## detect repeated face in polyhgons from polyhedron_mesh
     #repeated_faces = []
     #for i in range(0, len(polylla_mesh.polyhedron_mesh)):
     #        print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
     #        print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])
 
-    polylla_mesh.detect_barrierFaces() 
+    #polylla_mesh.detect_barrierFaces() 
