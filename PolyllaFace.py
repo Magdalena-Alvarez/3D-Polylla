@@ -215,7 +215,9 @@ class PolyllaFace:
 
 if __name__ == "__main__":
     folder = "data\\"
-    filename = folder + "3D_100.1"
+    #file = "3D_100.1"
+    file = "socket.1"
+    filename = folder + file 
     node_file = filename + ".node"
     ele_file = filename + ".ele"
     face_file = filename + ".face"
@@ -225,8 +227,9 @@ if __name__ == "__main__":
     polylla_mesh = PolyllaFace(mesh)
     for i in range(0, len(polylla_mesh.polyhedron_mesh)):
         #print(polylla_mesh.polyhedron_mesh[i])
-        polylla_mesh.printOFF_faces(folder + "polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+        polylla_mesh.printOFF_faces(folder + file + "_PolyllaFACE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
     
+    polylla_mesh.get_info()
     #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
     #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
 

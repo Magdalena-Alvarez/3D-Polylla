@@ -109,10 +109,8 @@ class PolyllaEdge:
                 longest_edges.append(edges[5])
             else:
                 print("Error")
-
         return longest_edges
  
-
     #Length of each edge
     def calculate_edges_length(self):
         for edge in self.mesh.edge_list:
@@ -168,7 +166,7 @@ if __name__ == "__main__":
 
     for i in range(0, len(polylla_mesh.polyhedron_mesh)):
         print(polylla_mesh.polyhedron_mesh[i])
-        polylla_mesh.printOFF_faces(file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+        polylla_mesh.printOFF_faces(folder + file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
     
     polylla_mesh.get_info()
     #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
