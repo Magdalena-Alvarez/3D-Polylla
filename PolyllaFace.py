@@ -22,9 +22,12 @@ class PolyllaFace:
         self.polyhedron_mesh = []
         for terminal_tetra in self.seed_tetra:
             polyhedron = []
-            self.DepthFirstSearch(polyhedron, terminal_tetra)
+            polyhedron_tetras = []
+            self.DepthFirstSearch(polyhedron, polyhedron_tetras, terminal_tetra)
             barrierFaces = self.count_barrierFaces(polyhedron)
             if barrierFaces > 0:
+                for tetra in polyhedron_tetras:
+                    self.bivector_seed_tetra_in_repair[tetra] = False
                 print("Polyhedron ", len(self.polyhedron_mesh) + 1  ," with barriers: ", barrierFaces, " faces")
                 barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
                 self.repairPhase(polyhedron, barrierFacesTips)
@@ -190,8 +193,9 @@ class PolyllaFace:
 
 
     # return list of faces 
-    def DepthFirstSearch(self, polyhedron, tetra):
+    def DepthFirstSearch(self, polyhedron, polyhedron_tetras, tetra):
         self.visited_tetra[tetra] = True
+        polyhedron_tetras.append(tetra)
         ## for each face of tetra
         for i in range(0, 4):
             face_id = self.mesh.tetra_list[tetra].faces[i]
@@ -203,7 +207,7 @@ class PolyllaFace:
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
                     if(self.visited_tetra[next_tetra] == False):
-                        self.DepthFirstSearch(polyhedron, next_tetra)
+                        self.DepthFirstSearch(polyhedron, polyhedron_tetras, next_tetra)
         
 ############################################################################################################
 # REPAIR PHASE
@@ -295,7 +299,7 @@ class PolyllaFace:
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
                     if(self.visited_tetra[next_tetra] == False):
-                        self.DepthFirstSearch(polyhedron, next_tetra)
+                        self.DepthFirstSearch_in_repair(polyhedron,  next_tetra)
 
 ############################################################################################################
 # EXTRA
