@@ -1,3 +1,6 @@
+#Reglas
+# - Cualquier cualquer calculo geometrico no debe en la clase mesh, deben estar en PolyllaEdge y PolyllaFace
+
 from collections import Counter
 from operator import index
 from typing import List, Dict

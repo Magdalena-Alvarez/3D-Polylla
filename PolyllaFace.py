@@ -1,3 +1,5 @@
+##Notice: Polyhedrons are representd a list of faces
+
 from mesh import TetrahedronMesh
 import numpy as np
 import sys
@@ -9,43 +11,75 @@ class PolyllaFace:
         self.mesh = mesh
         self.n_barrier_faces = 0
         self.polyhedra_with_barriers = 0
-        self.calculate_area_triangle_3d()
-        self.longest_faces = self.calculate_max_faces()
+        
+        #self.longest_faces = self.calculate_max_area_faces()
+        self.longest_faces = self.calculate_max_incircle_faces()
         self.seed_tetra = self.calculate_seed_tetrahedrons()
         self.bitvector_frontier_edges = self.calculate_frontier_faces()
 
         self.visited_tetra = [False] * mesh.n_tetrahedrons
+        self.bivector_seed_tetra_in_repair = [False] * mesh.n_tetrahedrons
         self.polyhedron_mesh = []
-        count = 0        
         for terminal_tetra in self.seed_tetra:
             polyhedron = []
             self.DepthFirstSearch(polyhedron, terminal_tetra)
-            self.polyhedron_mesh.append(polyhedron)
             barrierFaces = self.count_barrierFaces(polyhedron)
             if barrierFaces > 0:
-                print("Polyhedron ", count, " has barrier faces")
-                self.detectBarrierFaceTips(polyhedron)       
-            count += 1
+                print("Polyhedron ", len(self.polyhedron_mesh) + 1  ," with barriers: ", barrierFaces, " faces")
+                barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
+                self.repairPhase(polyhedron, barrierFacesTips)
+            else:
+                self.polyhedron_mesh.append(polyhedron)
 
-    def detectBarrierFaceTips(self, terminalFace):
-        #print("Detecting barrier faces of terminalFace: ", terminalFace)    
-        #list of all reapeted faces
-        barrierFaces = [k for k, v in Counter(terminalFace).items() if v > 1]
-        #List of all edges of the barrier faces
-        possibleTips = set()
-        #print("barrierFaces: ", barrierFaces)
-        for face in barrierFaces:
-            possibleTips.update(self.mesh.face_list[face].edges)
-        possibleTips = list(possibleTips)
-        #print("possibleTips: ", possibleTips)   
-        for e in possibleTips:
-            face_of_edge = self.mesh.edge_list[e].faces
-            #print("face_of_edge: ", face_of_edge)
-            #print("L1 ", list(set(face_of_edge) & set(terminalFace)))
-            L1 = len(list(set(face_of_edge) & set(terminalFace)))
-            L2 = len(terminalFace)
-            if L2 - L1 == L2 - 1:
-                print(e, "is a barrier-face tip")
+#############################################################################################   
+# LABEL PHASE
+#############################################################################################
+
+
+    #Calculate length of each edge
+    def calculate_edges_length(self):
+        for edge in self.mesh.edge_list:
+            v1 = self.mesh.node_list[edge.v1]
+            v2 = self.mesh.node_list[edge.v2]
+            distance = (v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2 #without sqrt for performance
+            edge.length = distance
+
+    ## Create a list with the index of the face of each treehedral that have the longest incircle radius
+    def calculate_max_incircle_faces(self):
+        #Caclulate the length of each edge
+        self.calculate_edges_length()
+
+        # Calculate the incircle radius of each face
+        face_radious = []
+        for i in range(0, self.mesh.n_faces):
+            length_edge_a = self.mesh.edge_list[self.mesh.face_list[i].edges[0]].length
+            length_edge_b = self.mesh.edge_list[self.mesh.face_list[i].edges[1]].length
+            length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
+            semiperimeter = (length_edge_a + length_edge_b + length_edge_c) / 2
+            #we avoid calculate the square root to opt the code
+            radious = (semiperimeter - length_edge_a) * (semiperimeter - length_edge_b) * (semiperimeter - length_edge_c) / semiperimeter
+            face_radious.append(radious)
+
+        #compare the radious of each face of all tetrahedros and return the index of the face with the longest radious
+        longest_faces = []
+        for i in range(0, self.mesh.n_tetrahedrons):
+            a0 = face_radious[self.mesh.tetra_list[i].faces[0]]
+            a1 = face_radious[self.mesh.tetra_list[i].faces[1]]
+            a2 = face_radious[self.mesh.tetra_list[i].faces[2]]
+            a3 = face_radious[self.mesh.tetra_list[i].faces[3]]
+            maxFace = max(a0, a1, a2, a3)
+            if maxFace == a0:
+                longest_faces.append(0)
+            elif maxFace == a1:
+                longest_faces.append(1)
+            elif maxFace == a2:
+                longest_faces.append(2)
+            elif maxFace == a3:
+                longest_faces.append(3)
+            else:
+                print("Error en la funcion calculate_max_incircle_faces")
+        return longest_faces
+
 
     def calculate_area_triangle_3d(self):
         for face in self.mesh.face_list:
@@ -59,7 +93,8 @@ class PolyllaFace:
             face.area = area
 
     # Esto puede ser un escrito en dos lineas
-    def calculate_max_faces(self):
+    def calculate_max_area_faces(self):
+        self.calculate_area_triangle_3d()
         longest = []
         for tetra in self.mesh.tetra_list:
             # Calcula el area de cada cara
@@ -78,7 +113,7 @@ class PolyllaFace:
             elif maxFace == a3:
                 longest.append(3)
             else:
-                print("Error en la funcion calculate_max_faces")
+                print("Error en la funcion calculate_max_area_faces")
         return longest   
 
     # Retorna la cara maś larga como objeto cara
@@ -149,6 +184,11 @@ class PolyllaFace:
             
         return frontier_faces
 
+##########################################################################################
+#   TRAVEL PHASE
+##########################################################################################
+
+
     # return list of faces 
     def DepthFirstSearch(self, polyhedron, tetra):
         self.visited_tetra[tetra] = True
@@ -156,16 +196,110 @@ class PolyllaFace:
         for i in range(0, 4):
             face_id = self.mesh.tetra_list[tetra].faces[i]
             tetra_neighs = self.mesh.tetra_list[tetra].neighs
-            #print(tetra_neighs)
             if face_id != -1:
+                #si la cara es un frontier-face, entonces no se sigue la recursión
                 if self.bitvector_frontier_edges[face_id] == True:
                     polyhedron.append(face_id)
-                else:
+                else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
                     if(self.visited_tetra[next_tetra] == False):
                         self.DepthFirstSearch(polyhedron, next_tetra)
         
+############################################################################################################
+# REPAIR PHASE
+############################################################################################################
 
+
+    def count_barrierFaces(self, polyhedron):
+        repeated = [k for k, v in Counter(polyhedron).items() if v > 1]
+        if(len(repeated) > 0):
+            self.n_barrier_faces += len(repeated)
+            self.polyhedra_with_barriers += 1
+        return len(repeated)
+
+    def detectBarrierFaceTips(self, terminalFace):
+        barrierFacesTips = []
+        #print("Detecting barrier faces of terminalFace: ", terminalFace)    
+        #list of all reapeted faces
+        barrierFaces = [k for k, v in Counter(terminalFace).items() if v > 1]
+        #List of all edges of the barrier faces
+        possibleTips = set()
+        for face in barrierFaces:
+            possibleTips.update(self.mesh.face_list[face].edges)
+        possibleTips = list(possibleTips)
+        for e in possibleTips:
+            #List of all faces incident to e
+            face_of_edge = self.mesh.edge_list[e].faces
+            # #(F_e in terminalFace)
+            L1 = len(list(set(face_of_edge) & set(terminalFace)))
+            L2 = len(terminalFace)
+            if L2 - L1 == L2 - 1:
+                print(e, "is a barrier-face tip")
+                barrierFacesTips.append(e)
+        return barrierFacesTips
+
+
+    def repairPhase(self, polyhedron, barrierFaceTips):
+        tetra_list = []
+        for e in barrierFaceTips:
+            #search polyhedron that contains the edge e
+            for face in polyhedron:
+                if e in self.mesh.face_list[face].edges:
+                    barrierFace = face
+                    break
+            # select the middle face indicent to e
+            faces_of_barrierFaceTip = self.mesh.edge_list[e].faces
+            n_internalFaces = len(faces_of_barrierFaceTip) - 1 
+            #int adv = (internal_edges%2 == 0) ? internal_edges/2 - 1 : internal_edges/2 ;
+            adv = n_internalFaces/2 - 1 if n_internalFaces%2 == 0 else n_internalFaces/2 
+            pos = faces_of_barrierFaceTip.index(barrierFace)
+            middle_Face = faces_of_barrierFaceTip[int((pos + adv)%n_internalFaces)]
+
+            # convert the middle internalface into a frontier-face
+            self.bitvector_frontier_edges[middle_Face] = True
+
+            #store adjacent tetrahedrons to the sub seed list
+            tetra1 = self.mesh.face_list[barrierFace].n1
+            tetra2 = self.mesh.face_list[barrierFace].n2
+            tetra_list.append(tetra1)
+            tetra_list.append(tetra2)
+
+            #mark to be use in the bitvector_seed_tetra
+            self.bivector_seed_tetra_in_repair[tetra1] = True
+            self.bivector_seed_tetra_in_repair[tetra2] = True
+        
+        #while tetra_list is not empty
+        while len(tetra_list) > 0:
+            tetra_curr = tetra_list.pop()
+            if self.bivector_seed_tetra_in_repair[tetra_curr] == True:
+                self.bivector_seed_tetra_in_repair[tetra_curr] = False
+                polyhedron = []
+                self.DepthFirstSearch_in_repair(polyhedron, tetra_curr)
+                barrierFaces = self.count_barrierFaces(polyhedron)
+                print("barrierFaces: ", barrierFaces)
+                self.polyhedron_mesh.append(polyhedron)
+
+    # return list of faces 
+    def DepthFirstSearch_in_repair(self, polyhedron, tetra):
+        self.visited_tetra[tetra] = True
+        # tetra es remove as candidate for generation of poliedron
+        self.bivector_seed_tetra_in_repair[tetra] = False 
+        ## for each face of tetra
+        for i in range(0, 4):
+            face_id = self.mesh.tetra_list[tetra].faces[i]
+            tetra_neighs = self.mesh.tetra_list[tetra].neighs
+            if face_id != -1:
+                #si la cara es un frontier-face, entonces no se sigue la recursión
+                if self.bitvector_frontier_edges[face_id] == True:
+                    polyhedron.append(face_id)
+                else: #si es internal-face, se sigue la recursión por su tetra vecino
+                    next_tetra = tetra_neighs[i]
+                    if(self.visited_tetra[next_tetra] == False):
+                        self.DepthFirstSearch(polyhedron, next_tetra)
+
+############################################################################################################
+# EXTRA
+############################################################################################################
 
     def printOFF_faces(self, filename, faces):
             print("writing OFF file: "+ filename)
@@ -194,12 +328,7 @@ class PolyllaFace:
                     v3 = self.mesh.face_list[f].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
-    def count_barrierFaces(self, polyhedron):
-        repeated = [k for k, v in Counter(polyhedron).items() if v > 1]
-        if(len(repeated) > 0):
-            self.n_barrier_faces += len(repeated)
-            self.polyhedra_with_barriers += 1
-        return len(repeated)
+
 
 
     def get_info(self):

@@ -1,3 +1,6 @@
+# Los polihedros se represen como un conjunto de tetrahedros
+# se deben transformar a un conjunto de caras
+
 from mesh import TetrahedronMesh
 from collections import Counter
 
@@ -6,6 +9,7 @@ class PolyllaEdge:
     def __init__(self, mesh):
         self.mesh = mesh
         self.calculate_edges_length()
+
         # use to check if the order of in which the edges are join is important or not
         # by defect the list of tetrahedros is of each edge is in counterclockwise order, this function do a random order
         #self.calculate_tetrahedrons_for_edge()  
