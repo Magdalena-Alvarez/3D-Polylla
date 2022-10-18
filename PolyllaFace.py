@@ -258,13 +258,15 @@ class PolyllaFace:
                     break
             # select the middle face indicent to e
             faces_of_barrierFaceTip = self.mesh.edge_list[e].faces
-            print("faces_of_barrierFaceTip: ", faces_of_barrierFaceTip)
+            
             n_internalFaces = len(faces_of_barrierFaceTip) - 1 
             #int adv = (internal_edges%2 == 0) ? internal_edges/2 - 1 : internal_edges/2 ;
             adv = floor(n_internalFaces/2) - 1 if n_internalFaces%2 == 0 else floor(n_internalFaces/2) 
+            adv += 1 #because the first face is the barrierFace, advance to the next internal-face
             pos = faces_of_barrierFaceTip.index(barrierFace)
-            middle_Face = faces_of_barrierFaceTip[((pos + adv)%n_internalFaces) + 1]
-            print("barrierFace", barrierFace, "n_internalFaces", n_internalFaces,   "adv: ", adv, "pos: ", pos, "middle_Face: ", middle_Face)
+            middle_Face = faces_of_barrierFaceTip[(pos + adv)%n_internalFaces]
+            #print("faces_of_barrierFaceTip: ", faces_of_barrierFaceTip, "barrierFace", barrierFace, "n_internalFaces", n_internalFaces,   "adv: ", adv, "pos: ", pos, "middle_Face: ", middle_Face)
+            #if there no advance, the middle face is the barrierFace and there is not repair
             if(middle_Face == barrierFace):
                 sys.exit("middle_Face == faces_of_barrierFaceTip")
             # convert the middle internalface into a frontier-face
