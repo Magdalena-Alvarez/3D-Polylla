@@ -1,4 +1,5 @@
-
+data/*.off
+!data/socket.off
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

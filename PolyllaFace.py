@@ -4,7 +4,7 @@ from mesh import TetrahedronMesh
 import numpy as np
 import sys
 from collections import Counter
-
+from math import floor
 
 class PolyllaFace:
     def __init__(self, mesh):
@@ -24,15 +24,20 @@ class PolyllaFace:
             polyhedron = []
             polyhedron_tetras = []
             self.DepthFirstSearch(polyhedron, polyhedron_tetras, terminal_tetra)
+            #check if the polyhedron has barriers faces
             barrierFaces = self.count_barrierFaces(polyhedron)
             if barrierFaces > 0:
+                #we need to repair the polyhedron, so we mark all the tetrahedrons in the polyhedron as not visited yet
                 for tetra in polyhedron_tetras:
-                    self.bivector_seed_tetra_in_repair[tetra] = False
-                print("Polyhedron ", len(self.polyhedron_mesh) + 1  ," with barriers: ", barrierFaces, " faces")
-                barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
-                self.repairPhase(polyhedron, barrierFacesTips)
-            else:
+                    self.visited_tetra[tetra] = False
                 self.polyhedron_mesh.append(polyhedron)
+                print("Polyhedron ", len(self.polyhedron_mesh)  ," with ", barrierFaces, " barriers faces")
+                ##generate a list with all the  barrier-face tips 
+                barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
+                ## Sent the polyhedron to repair
+                self.repairPhase(polyhedron, barrierFacesTips)
+            #else:
+                #self.polyhedron_mesh.append(polyhedron)
 
 #############################################################################################   
 # LABEL PHASE
@@ -253,12 +258,15 @@ class PolyllaFace:
                     break
             # select the middle face indicent to e
             faces_of_barrierFaceTip = self.mesh.edge_list[e].faces
+            print("faces_of_barrierFaceTip: ", faces_of_barrierFaceTip)
             n_internalFaces = len(faces_of_barrierFaceTip) - 1 
             #int adv = (internal_edges%2 == 0) ? internal_edges/2 - 1 : internal_edges/2 ;
-            adv = n_internalFaces/2 - 1 if n_internalFaces%2 == 0 else n_internalFaces/2 
+            adv = floor(n_internalFaces/2) - 1 if n_internalFaces%2 == 0 else floor(n_internalFaces/2) 
             pos = faces_of_barrierFaceTip.index(barrierFace)
-            middle_Face = faces_of_barrierFaceTip[int((pos + adv)%n_internalFaces)]
-
+            middle_Face = faces_of_barrierFaceTip[((pos + adv)%n_internalFaces) + 1]
+            print("barrierFace", barrierFace, "n_internalFaces", n_internalFaces,   "adv: ", adv, "pos: ", pos, "middle_Face: ", middle_Face)
+            if(middle_Face == barrierFace):
+                sys.exit("middle_Face == faces_of_barrierFaceTip")
             # convert the middle internalface into a frontier-face
             self.bitvector_frontier_edges[middle_Face] = True
 
@@ -273,15 +281,16 @@ class PolyllaFace:
             self.bivector_seed_tetra_in_repair[tetra2] = True
         
         #while tetra_list is not empty
+        print("Tetra list: ", tetra_list)
         while len(tetra_list) > 0:
             tetra_curr = tetra_list.pop()
             if self.bivector_seed_tetra_in_repair[tetra_curr] == True:
                 self.bivector_seed_tetra_in_repair[tetra_curr] = False
-                polyhedron = []
-                self.DepthFirstSearch_in_repair(polyhedron, tetra_curr)
-                barrierFaces = self.count_barrierFaces(polyhedron)
-                print("barrierFaces: ", barrierFaces)
-                self.polyhedron_mesh.append(polyhedron)
+                new_polyhedron = []
+                self.DepthFirstSearch_in_repair(new_polyhedron, tetra_curr)
+                self.polyhedron_mesh.append(new_polyhedron)
+                barrierFaces = self.count_barrierFaces(new_polyhedron)
+                print("NEW ", len(self.polyhedron_mesh), "has barrierFaces: ", barrierFaces)
 
     # return list of faces 
     def DepthFirstSearch_in_repair(self, polyhedron, tetra):
