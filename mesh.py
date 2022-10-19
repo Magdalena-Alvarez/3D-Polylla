@@ -185,21 +185,28 @@ class TetrahedronMesh:
                 tetra.edges.extend(tetra_edges_aux)
             tetra.edges = [*set(tetra.edges)]
 
-        # Get list of tetrahedrons adjancetos to each edge
-        #CAMBIAR A UNA WEA QUE NO SEA O(N^2)
-        # se me olvido porqué puse esto aquí
-#        for edge in edge_list:
-#            for tetra in tetra_list:
-#                if edge.i in tetra.edges:
-#                    edge.tetrahedrons.append(tetra.i)
 
         # Calculate border tetrahedron adjacent to each edge
-        for tetra in tetra_list:
-            for edge in tetra.edges:
-                if tetra.is_boundary:
-                    edge_list[edge].first_tetra = tetra.i
+#        for tetra in tetra_list:
+#            for edge in tetra.edges:
+#                if tetra.is_boundary:
+#                    edge_list[edge].first_tetra = tetra.i
+
+        # Calculate border tetrahedron adjacent to each edge
+        for face in face_list:
+            for edge in face.edges:
+                if face.is_boundary:
+                    n1 = face.n1
+                    n2 = face.n2
+                    if n1 != -1:
+                        edge_list[edge].first_tetra = n1
+                    else:
+                        edge_list[edge].first_tetra = n2
 
         # Calculate all the tetrahedrons adjacent to each edge in order
+        #This do it using brute force
+        #self.calculate_tetrahedrons_for_edge(edge_list, tetra_list)
+        #This do it using the first tetrahedron, if the edge is boundary, then the first tetrahedron MUST BE boundary.
         for edge in edge_list:
             self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
 
@@ -207,11 +214,12 @@ class TetrahedronMesh:
         for t in range(0, len(tetra_list)):
             print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
 
-        #self.calculate_tetrahedrons_for_edge(edge_list, tetra_list, edge_list)
+        
 
         return node_list, face_list, tetra_list, edge_list
 
     # Circle around an edge e to find their adjacent tetrahedrons and faces and store them in order
+    # If the edge es boundary, then the first_tetrahedron MUST BE boundary.
     def tetrahedrons_adjcacents_to_edge(self, edge, tetra_list, face_list, edge_list):
         tetra_origin = edge_list[edge].first_tetra
         # Search face adjacent to tetra_origin that contains edge
@@ -279,10 +287,14 @@ class TetrahedronMesh:
         print("Number of edges: ", len(self.edge_list))
 
 if __name__ == "__main__":
-    filename = "data\\3D_100.1"
+    #filename = "data\\3D_100.1"
+    filename = "data\\socket.1"
     node_file = filename + ".node"
     ele_file = filename + ".ele"
     face_file = filename + ".face"
     edge_file = filename + ".edge"
     print("reading files" + node_file + edge_file + face_file + edge_file)
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
+    for edge in mesh.edge_list:
+        print(edge.i, edge.v1, edge.v2, edge.tetrahedrons, edge.faces, edge.first_tetra)
+        
