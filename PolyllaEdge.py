@@ -54,14 +54,20 @@ class PolyllaEdge:
         edge_list = []
         for tetra in polyhedron:
             edge_list.extend(self.mesh.tetra_list[tetra].edges)
+        #Only repeated edges are revised
         edge_list = [k for k, v in Counter(edge_list).items() if v > 1]
+        # For each repead edge
+        new_polyhedrons = []
+        flag = False
         for edge in edge_list:
             if self.detec_barrier_edge(edge, polyhedron):
+                flag = True
                 print("Polyhedron", polyhedron, "has a hanging tetrahedron")
-                new_polyhedrons = self.separate_polyhedron(edge, polyhedron)
-                ## iMPORTANTE: se asume que solo existe un barrier-edge por polyhedron
+                new_polyhedrons.extend(self.separate_polyhedron(edge, polyhedron))
                 print("New polyhedrons:", new_polyhedrons)
-                return new_polyhedrons
+        # if a barrier_edge was detected
+        if flag:           
+            return new_polyhedrons     
         return [polyhedron]
 
     ## Function separate polyhedron with hanging tetrahedrons
@@ -74,6 +80,7 @@ class PolyllaEdge:
             if Te[t] not in polyhedron:
                 Te[t] = -1
         #position of the first element -1 in Te
+        pos_origin = -1
         for i in range(0,len(Te)):
             if Te[i] == -1:
                 pos_origin = i
@@ -82,16 +89,18 @@ class PolyllaEdge:
         print("Te:", Te, "pos_origin:", pos_origin, "curr:", curr)
         new_polyhedrons = []
         while curr != pos_origin:
-            polyhedron = []
-            ## advance until reach the frist tetrahedron to splot
-            while Te[curr] == -1 and curr != pos_origin:
+            # If there is a hanging tetrahedron
+            if Te[curr] != -1:
+                polyhedron = []
+                ## add all tetrahedrons until reach a void
+                while Te[curr] != -1:
+                    polyhedron.append(Te[curr])
+                    curr = (curr + 1) % len(Te)
+                new_polyhedrons.append(polyhedron)
+                print("Te:", Te, "pos_origin:", pos_origin, "curr:", curr)
+            else:
+                #Advance until reach an haing tetrahedron
                 curr = (curr + 1) % len(Te)
-            ## add all tetrahedrons until reach a void
-            while Te[curr] != -1:
-                polyhedron.append(Te[curr])
-                curr = (curr + 1) % len(Te)
-            new_polyhedrons.append(polyhedron)
-            print("Te:", Te, "pos_origin:", pos_origin, "curr:", curr)
         return new_polyhedrons
 
     ## Function to detect if a edge has hanging tetrahedrons
