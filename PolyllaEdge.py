@@ -32,21 +32,22 @@ class PolyllaEdge:
             self.DepthFirstSearch(Polyhedron, edge)
             #Remove empty polyhedrons
             if len(Polyhedron) > 0:
+                # check if a polyhedron needs to be repair
                 polyhedrons = self.repair_polyhedron(Polyhedron)
                 self.polyhedron_mesh_with_tetras.extend(polyhedrons)
         
-      #  print("Polyhedrons with tetras: ", self.polyhedron_mesh_with_tetras)
 
         #Conseguir las caras de borde de las terminal-edge region
         self.polyhedron_mesh = []
         for poly in self.polyhedron_mesh_with_tetras:
-            polyhedron = []
+            Polyhedron = []
             #Generate a list of a the faces of each terminal-edge region
             for tetra in poly:
-                polyhedron.extend(self.mesh.tetra_list[tetra].faces)
+                Polyhedron.extend(self.mesh.tetra_list[tetra].faces)
             #Remove repeat faces, those faces are interior faces
-            polyhedron = [*set(polyhedron)]
-            self.polyhedron_mesh.append(polyhedron)
+            Polyhedron = [el for el, cnt in Counter(Polyhedron).items() if cnt==1]
+            self.polyhedron_mesh.append(Polyhedron)
+        
     
     ## Function to detect and polyhedrons with hanging tetrahedrons
     ## Return a list of lists of polyhedrons
@@ -229,14 +230,5 @@ if __name__ == "__main__":
     for i in range(0, len(polylla_mesh.polyhedron_mesh)):
         #print(polylla_mesh.polyhedron_mesh[i])
         polylla_mesh.printOFF_faces(folder + file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
-    
+    print(polylla_mesh.polyhedron_mesh[0])
     polylla_mesh.get_info()
-    #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
-    #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
-
-    #print(polylla_mesh.polyhedron_mesh)
-    ### detect repeated face in polyhgons from polyhedron_mesh
-    #repeated_faces = []
-    #for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-    #    print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
-    #    print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])

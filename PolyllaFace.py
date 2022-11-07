@@ -258,6 +258,7 @@ class PolyllaFace:
 
     def repairPhase(self, polyhedron, barrierFaceTips):
         tetra_list = []
+        barrierFace = -1
         for e in barrierFaceTips:
             #search polyhedron that contains the edge e
             for face in polyhedron:
