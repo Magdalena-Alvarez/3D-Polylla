@@ -9,7 +9,8 @@ class PolyllaEdge:
     def __init__(self, mesh):
         self.mesh = mesh
         self.calculate_edges_length()
-
+        self.barrier_edges = 0
+        self.hanging_polyhedrons = 0
         #Sort edges by length longest to shortest
         #Cambiar a futuro por algo que genere una lista de indice sin tener que primero crear una una lista de objetos
         self.edges_sorted_by_length = sorted(self.mesh.edge_list, key=lambda edge: edge.length, reverse=True)
@@ -63,9 +64,11 @@ class PolyllaEdge:
         for edge in edge_list:
             if self.detec_barrier_edge(edge, polyhedron):
                 flag = True
+                self.barrier_edges += 1
                 print("Polyhedron", polyhedron, "has a hanging tetrahedron")
                 new_polyhedrons.extend(self.separate_polyhedron(edge, polyhedron))
                 print("New polyhedrons:", new_polyhedrons)
+
         # if a barrier_edge was detected
         if flag:           
             return new_polyhedrons     
@@ -124,7 +127,7 @@ class PolyllaEdge:
             #change from void and tetra
             if first == -1 and nxt != -1:
                 count += 1
-        
+        self.hanging_polyhedrons += count/2
         if count > 2:
             print("Edge:", e, "count:", count)
             return True
@@ -197,26 +200,37 @@ class PolyllaEdge:
 
     def printOFF_polyhedralmesh(self, filename):
         print("writing OFF file: "+ filename)
+        list_face = []
+        for polyhedron in self.polyhedron_mesh:
+            list_face.extend(polyhedron)
+        list_face =  list(dict.fromkeys(list_face))
         with open(filename, 'w') as fh:
             fh.write("OFF\n")
-            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(self.polyhedron_mesh)))
+            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
             for v in self.mesh.node_list:
                 fh.write("%f %f %f\n" % (v.x, v.y, v.z))
-            for polyhedra in self.polyhedron_mesh:
-                for f in polyhedra:
-                    v1 = self.mesh.face_list[f].v1
-                    v2 = self.mesh.face_list[f].v2
-                    v3 = self.mesh.face_list[f].v3
-                    fh.write("3 %d %d %d\n" % (v1, v2, v3))    
+            for f in list_face:
+                v1 = self.mesh.face_list[f].v1
+                v2 = self.mesh.face_list[f].v2
+                v3 = self.mesh.face_list[f].v3
+                fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
     def get_info(self):
         print("PolyllaEdge info:")
         print("Number of polyhedrons:", len(self.polyhedron_mesh))
+        print("Number of barrier-edges:", self.barrier_edges)
+        print("Number of hanging polyhedrons:", self.hanging_polyhedrons)
+        num_of_tetra = 0
+        for i in range(0, len(self.polyhedron_mesh)):
+            if len(self.polyhedron_mesh[i]) == 4:
+                num_of_tetra += 1
+        print("Number of polyhedrons that are tetrahedrons: " + str(num_of_tetra))
 
 if __name__ == "__main__":
     folder = "data\\"
     #file = "3D_100.1"
-    file = "socket.1"
+    #file = "socket.1"
+    file = "1000points.1"
     filename = folder + file
     node_file = filename + ".node"
     ele_file = filename + ".ele"
@@ -227,8 +241,9 @@ if __name__ == "__main__":
     polylla_mesh = PolyllaEdge(mesh)
 
 
-    for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-        #print(polylla_mesh.polyhedron_mesh[i])
-        polylla_mesh.printOFF_faces(folder + file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
-    print(polylla_mesh.polyhedron_mesh[0])
+#    for i in range(0, len(polylla_mesh.polyhedron_mesh)):
+#        #print(polylla_mesh.polyhedron_mesh[i])
+#        polylla_mesh.printOFF_faces(folder + file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+#    print(polylla_mesh.polyhedron_mesh[0])
+    polylla_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAEDGE.off")
     polylla_mesh.get_info()

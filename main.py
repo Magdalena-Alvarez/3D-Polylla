@@ -5,7 +5,8 @@ from PolyllaFace import PolyllaFace
 if __name__ == "__main__":
     folder = "data\\"
     #file = "3D_100.1"
-    file = "socket.1"
+    #file = "socket.1"
+    file = "1000points07.1"
     filename = folder + file
     node_file = filename + ".node"
     ele_file = filename + ".ele"
@@ -18,6 +19,9 @@ if __name__ == "__main__":
     polyllaEdge_mesh = PolyllaEdge(mesh)
     polyllaFace_mesh = PolyllaFace(mesh)
     
+    polyllaEdge_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAEDGE.off")
+    polyllaFace_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAFACE.off")
+
     mesh.get_info()
     polyllaEdge_mesh.get_info()
     polyllaFace_mesh.get_info()

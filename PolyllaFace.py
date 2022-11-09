@@ -24,6 +24,7 @@ class PolyllaFace:
             polyhedron = []
             polyhedron_tetras = []
             self.DepthFirstSearch(polyhedron, polyhedron_tetras, terminal_tetra)
+            #self.polyhedron_mesh.append(polyhedron)
             #check if the polyhedron has barriers faces
             barrierFaces = self.count_barrierFaces(polyhedron)
             if barrierFaces > 0:
@@ -36,8 +37,8 @@ class PolyllaFace:
                 barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
                 ## Sent the polyhedron to repair
                 self.repairPhase(polyhedron, barrierFacesTips)
-            #else:
-                #self.polyhedron_mesh.append(polyhedron)
+            else:
+                self.polyhedron_mesh.append(polyhedron)
 
 #############################################################################################   
 # LABEL PHASE
@@ -94,6 +95,8 @@ class PolyllaFace:
             v1 = self.mesh.node_list[face.v1]
             v2 = self.mesh.node_list[face.v2]
             v3 = self.mesh.node_list[face.v3]
+            
+            #calculate the area of the triangle
             av1 = np.array([v1.x, v1.y, v1.z])
             av2 = np.array([v2.x, v2.y, v2.z])
             av3 = np.array([v3.x, v3.y, v3.z])
@@ -340,17 +343,20 @@ class PolyllaFace:
 
     def printOFF_polyhedralmesh(self, filename):
         print("writing OFF file: "+ filename)
+        list_face = []
+        for polyhedron in self.polyhedron_mesh:
+            list_face.extend(polyhedron)
+        list_face =  list(dict.fromkeys(list_face))
         with open(filename, 'w') as fh:
             fh.write("OFF\n")
-            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(self.polyhedron_mesh)))
+            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
             for v in self.mesh.node_list:
                 fh.write("%f %f %f\n" % (v.x, v.y, v.z))
-            for polyhedra in self.polyhedron_mesh:
-                for f in polyhedra:
-                    v1 = self.mesh.face_list[f].v1
-                    v2 = self.mesh.face_list[f].v2
-                    v3 = self.mesh.face_list[f].v3
-                    fh.write("3 %d %d %d\n" % (v1, v2, v3))
+            for f in list_face:
+                v1 = self.mesh.face_list[f].v1
+                v2 = self.mesh.face_list[f].v2
+                v3 = self.mesh.face_list[f].v3
+                fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
 
 
@@ -370,6 +376,7 @@ if __name__ == "__main__":
     folder = "data\\"
     #file = "3D_100.1"
     file = "socket.1"
+    file = "1000points.1"
     filename = folder + file 
     node_file = filename + ".node"
     ele_file = filename + ".ele"
@@ -378,19 +385,13 @@ if __name__ == "__main__":
     print("reading files" + node_file + edge_file + face_file + edge_file)
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
     polylla_mesh = PolyllaFace(mesh)
-    for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-        #print(polylla_mesh.polyhedron_mesh[i])
-        polylla_mesh.printOFF_faces(folder + file + "_PolyllaFACE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+
     
-    polylla_mesh.get_info()
-    #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
+    polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
     #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
-
-    #print(polylla_mesh.polyhedron_mesh)
-    ## detect repeated face in polyhgons from polyhedron_mesh
-    #repeated_faces = []
     #for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-    #        print("polyhedron: " + str(i) + " " + str(polylla_mesh.polyhedron_mesh[i]))
-    #        print([k for k,v in Counter(polylla_mesh.polyhedron_mesh[i]).items() if v>1])
+    #    #print(polylla_mesh.polyhedron_mesh[i])
+    #    polylla_mesh.printOFF_faces(folder + file + "_PolyllaFACE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+    
 
-    #polylla_mesh.detect_barrierFaces() 
+    polylla_mesh.get_info()
