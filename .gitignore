@@ -1,5 +1,7 @@
-data/*.off
+data/*
 !data/socket.off
+!data/3Dsamplegeneration.ipynb
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

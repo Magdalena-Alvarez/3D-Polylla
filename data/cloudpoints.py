@@ -1,14 +1,27 @@
-import point_cloud_utils as pcu
+import numpy as np
+from scipy.stats import qmc
 
-# v is a nv by 3 NumPy array of vertices
-# f is an nf by 3 NumPy array of face indexes into v
-# n is a nv by 3 NumPy array of vertex normals
-v, f, n = pcu.load_mesh_vfn("box.off")
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import proj3d
 
-# Generate 10000 samples on a mesh with poisson disk samples
-# f_i are the face indices of each sample and bc are barycentric coordinates of the sample within a face
-f_i, bc = pcu.sample_mesh_poisson_disk(v, f, n, 10000)
+rng = np.random.default_rng()
+engine = qmc.PoissonDisk(d=3, radius=0.2, seed=138, hypersphere='surface')
+sample = engine.fill_space()
 
-# Use the face indices and barycentric coordinate to compute sample positions and normals
-v_poisson = pcu.interpolate_barycentric_coords(f, f_i, bc, v)
-n_poisson = pcu.interpolate_barycentric_coords(f, f_i, bc, n)
+print(len(sample))
+print(min(sample[:, 0]), max(sample[:, 0]))
+print(min(sample[:, 1]), max(sample[:, 1]))
+print(min(sample[:, 2]), max(sample[:, 2]))
+
+print(sample)
+
+fig = plt.figure(figsize=(12,7))
+ax = fig.add_subplot(projection='3d')
+img = ax.scatter(sample[:, 0], sample[:, 1], sample[:, 2])
+fig.colorbar(img)
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+
+plt.show()
