@@ -1,13 +1,22 @@
 from mesh import TetrahedronMesh
 from PolyllaEdge import PolyllaEdge
 from PolyllaFace import PolyllaFace
+import sys
+ 
 
 if __name__ == "__main__":
-    folder = "data\\"
+    #folder = "data\\"
     #file = "3D_100.1"
     #file = "socket.1"
-    file = "1000points07.1"
-    filename = folder + file
+    #file = "1000points07.1"
+
+    full_cmd_arguments = sys.argv
+    argument_list = full_cmd_arguments[1:]
+
+    filename = argument_list[0]
+    outputname = argument_list[1]
+
+    
     node_file = filename + ".node"
     ele_file = filename + ".ele"
     face_file = filename + ".face"
@@ -19,8 +28,8 @@ if __name__ == "__main__":
     polyllaEdge_mesh = PolyllaEdge(mesh)
     polyllaFace_mesh = PolyllaFace(mesh)
     
-    polyllaEdge_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAEDGE.off")
-    polyllaFace_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAFACE.off")
+    #polyllaEdge_mesh.printOFF_polyhedralmesh(outputname + "POLYLLAEDGE.off")
+    #polyllaFace_mesh.printOFF_polyhedralmesh(outputname + "POLYLLAFACE.off")
 
     mesh.get_info()
     polyllaEdge_mesh.get_info()

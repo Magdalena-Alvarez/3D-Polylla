@@ -8,6 +8,11 @@ import numpy as np
 import sys
 import math
 
+class Polyhedron:
+    def __init__(self):
+        self.tetras = []
+        self.faces = []
+        self.was_repaired = False
 
 class Vertex:
     def __init__(self, i, x, y, z):
@@ -211,8 +216,8 @@ class TetrahedronMesh:
             self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
 
         # Imprime los tetrahedros
-        for t in range(0, len(tetra_list)):
-            print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
+        #for t in range(0, len(tetra_list)):
+        #    print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
 
         
 

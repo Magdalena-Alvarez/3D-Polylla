@@ -1,6 +1,6 @@
 ##Notice: Polyhedrons are representd a list of faces
 
-from mesh import TetrahedronMesh
+from mesh import TetrahedronMesh, Polyhedron
 import numpy as np
 import sys
 from collections import Counter
@@ -19,26 +19,27 @@ class PolyllaFace:
 
         self.visited_tetra = [False] * mesh.n_tetrahedrons
         self.bivector_seed_tetra_in_repair = [False] * mesh.n_tetrahedrons
-        self.polyhedron_mesh = []
+        self.polyhedral_mesh = []
         for terminal_tetra in self.seed_tetra:
             polyhedron = []
             polyhedron_tetras = []
             self.DepthFirstSearch(polyhedron, polyhedron_tetras, terminal_tetra)
-            #self.polyhedron_mesh.append(polyhedron)
+            #self.polyhedral_mesh.append(polyhedron)
             #check if the polyhedron has barriers faces
             barrierFaces = self.count_barrierFaces(polyhedron)
             if barrierFaces > 0:
                 #we need to repair the polyhedron, so we mark all the tetrahedrons in the polyhedron as not visited yet
                 for tetra in polyhedron_tetras:
                     self.visited_tetra[tetra] = False
-                self.polyhedron_mesh.append(polyhedron)
-                print("Polyhedron ", len(self.polyhedron_mesh) - 1 ," with ", barrierFaces, " barriers faces")
                 ##generate a list with all the  barrier-face tips 
                 barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
                 ## Sent the polyhedron to repair
                 self.repairPhase(polyhedron, barrierFacesTips)
             else:
-                self.polyhedron_mesh.append(polyhedron)
+                poly = Polyhedron()
+                poly.tetras = polyhedron_tetras.copy()
+                poly.faces = polyhedron.copy()
+                self.polyhedral_mesh.append(poly)
 
 #############################################################################################   
 # LABEL PHASE
@@ -301,14 +302,20 @@ class PolyllaFace:
             if self.bivector_seed_tetra_in_repair[tetra_curr] == True:
                 self.bivector_seed_tetra_in_repair[tetra_curr] = False
                 new_polyhedron = []
-                self.DepthFirstSearch_in_repair(new_polyhedron, tetra_curr)
-                self.polyhedron_mesh.append(new_polyhedron)
+                new_polyhedron_tetras = []
+                self.DepthFirstSearch_in_repair(new_polyhedron, new_polyhedron_tetras, tetra_curr)
+                poly = Polyhedron()
+                poly.faces = new_polyhedron.copy()
+                poly.tetras = new_polyhedron_tetras.copy()
+                poly.was_repaired = True
+                self.polyhedral_mesh.append(poly)
                 #barrierFaces = self.count_barrierFaces(new_polyhedron)
-                #print("NEW ", len(self.polyhedron_mesh) -1, "has barrierFaces: ", barrierFaces)
+                #print("NEW ", len(self.polyhedral_mesh) -1, "has barrierFaces: ", barrierFaces)
 
     # return list of faces 
-    def DepthFirstSearch_in_repair(self, polyhedron, tetra):
+    def DepthFirstSearch_in_repair(self, polyhedron, polyhedron_tetras, tetra):
         self.visited_tetra[tetra] = True
+        polyhedron_tetras.append(tetra)
         # tetra es remove as candidate for generation of poliedron
         self.bivector_seed_tetra_in_repair[tetra] = False 
         ## for each face of tetra
@@ -322,7 +329,7 @@ class PolyllaFace:
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
                     if(self.visited_tetra[next_tetra] == False):
-                        self.DepthFirstSearch_in_repair(polyhedron,  next_tetra)
+                        self.DepthFirstSearch_in_repair(polyhedron, polyhedron_tetras, next_tetra)
 
 ############################################################################################################
 # EXTRA
@@ -344,7 +351,7 @@ class PolyllaFace:
     def printOFF_polyhedralmesh(self, filename):
         print("writing OFF file: "+ filename)
         list_face = []
-        for polyhedron in self.polyhedron_mesh:
+        for polyhedron in self.polyhedral_mesh:
             list_face.extend(polyhedron)
         list_face =  list(dict.fromkeys(list_face))
         with open(filename, 'w') as fh:
@@ -363,14 +370,14 @@ class PolyllaFace:
 
     def get_info(self):
         print("PolyllaFace info:")
-        print("Number of polyhedrons: " + str(len(self.polyhedron_mesh)))
+        print("Number of polyhedrons: " + str(len(self.polyhedral_mesh)))
         print("Number of barrier faces: " + str(self.n_barrier_faces))
         print("Number of polyhedra with barrier faces: " + str(self.polyhedra_with_barriers))
-        num_of_tetra = 0
-        for i in range(0, len(self.polyhedron_mesh)):
-            if len(self.polyhedron_mesh[i]) == 4:
-                num_of_tetra += 1
-        print("Number of polyhedrons that are tetrahedrons: " + str(num_of_tetra))
+        count = 0
+        for polyhedron in self.polyhedral_mesh:
+            if len(polyhedron.tetras) == 1:
+                count += 1
+        print("Number of polyhedrons that are tetrahedrons: " + str(count))
 
 if __name__ == "__main__":
     folder = "data\\"
@@ -387,11 +394,11 @@ if __name__ == "__main__":
     polylla_mesh = PolyllaFace(mesh)
 
     
-    polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedron_mesh.off")
-    #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedron_mesh for num in sublist])))
-    #for i in range(0, len(polylla_mesh.polyhedron_mesh)):
-    #    #print(polylla_mesh.polyhedron_mesh[i])
-    #    polylla_mesh.printOFF_faces(folder + file + "_PolyllaFACE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
+    #polylla_mesh.printOFF_polyhedralmesh(filename + "_polyhedral_mesh.off")
+    #polylla_mesh.printOFF_faces(filename + "_frontier_faces.off", sorted(set([num for sublist in polylla_mesh.polyhedral_mesh for num in sublist])))
+    #for i in range(0, len(polylla_mesh.polyhedral_mesh)):
+    #    #print(polylla_mesh.polyhedral_mesh[i])
+    #    polylla_mesh.printOFF_faces(folder + file + "_PolyllaFACE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedral_mesh[i])
     
 
     polylla_mesh.get_info()

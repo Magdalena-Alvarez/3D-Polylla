@@ -1,7 +1,8 @@
 # Los polihedros se represen como un conjunto de tetrahedros
 # se deben transformar a un conjunto de caras
 
-from mesh import TetrahedronMesh
+
+from mesh import TetrahedronMesh, Polyhedron
 from collections import Counter
 
 
@@ -17,8 +18,8 @@ class PolyllaEdge:
         for e in range(0,len(self.edges_sorted_by_length)):
             self.edges_sorted_by_length[e] = self.edges_sorted_by_length[e].i
         
-        for i in range(0,len(self.edges_sorted_by_length)):
-            print("Edge:", self.edges_sorted_by_length[i], "length:", self.mesh.edge_list[self.edges_sorted_by_length[i]].length, self.mesh.edge_list[self.edges_sorted_by_length[i]].tetrahedrons)
+        #for i in range(0,len(self.edges_sorted_by_length)):
+        #    print("Edge:", self.edges_sorted_by_length[i], "length:", self.mesh.edge_list[self.edges_sorted_by_length[i]].length, self.mesh.edge_list[self.edges_sorted_by_length[i]].tetrahedrons)
 
         #Calculate longest edge of each tetrahedron
         self.longest_edges_each_tetra = self.calculate_longest_edges_of_tetra()
@@ -27,28 +28,35 @@ class PolyllaEdge:
         self.visited_tetra = [False] * mesh.n_tetrahedrons
 
         #generate a list of polyhedrons
-        self.polyhedron_mesh_with_tetras = []
-        for edge in self.edges_sorted_by_length:
-            Polyhedron = []
-            self.DepthFirstSearch(Polyhedron, edge)
-            #Remove empty polyhedrons
-            if len(Polyhedron) > 0:
-                # check if a polyhedron needs to be repair
-                polyhedrons = self.repair_polyhedron(Polyhedron)
-                self.polyhedron_mesh_with_tetras.extend(polyhedrons)
+        self.polyhedral_mesh = []
         
+        for edge in self.edges_sorted_by_length:
+            terminalEdgeRegion = []
+            self.DepthFirstSearch(terminalEdgeRegion, edge)
+            #Remove empty terminal edge regions
+            if len(terminalEdgeRegion) > 0:
+                # check if a polyhedron needs to be repair
+                terminalEdgeRegion = self.repair_polyhedron(terminalEdgeRegion)
+                has_hanging_tetra = True if len(terminalEdgeRegion) > 1 else False
+                for element in terminalEdgeRegion:
+                    poly = Polyhedron()
+                    poly.tetras.extend(element)
+                    poly.was_repaired = has_hanging_tetra
+                    self.polyhedral_mesh.append(poly)
+                    
 
         #Conseguir las caras de borde de las terminal-edge region
-        self.polyhedron_mesh = []
-        for poly in self.polyhedron_mesh_with_tetras:
-            Polyhedron = []
+        for poly in self.polyhedral_mesh:
+            polyhedron_faces = []
             #Generate a list of a the faces of each terminal-edge region
-            for tetra in poly:
-                Polyhedron.extend(self.mesh.tetra_list[tetra].faces)
+            for tetra in poly.tetras:
+                polyhedron_faces.extend(self.mesh.tetra_list[tetra].faces)
             #Remove repeat faces, those faces are interior faces
-            Polyhedron = [el for el, cnt in Counter(Polyhedron).items() if cnt==1]
-            self.polyhedron_mesh.append(Polyhedron)
-        
+            polyhedron = [el for el, cnt in Counter(polyhedron_faces).items() if cnt==1]
+            poly.faces.extend(polyhedron)
+            #print("tetras:", poly.tetras)
+            #print("Faces:", poly.faces)
+            #print("Was repaired:", poly.was_repaired)
     
     ## Function to detect and polyhedrons with hanging tetrahedrons
     ## Return a list of lists of polyhedrons
@@ -127,7 +135,7 @@ class PolyllaEdge:
             #change from void and tetra
             if first == -1 and nxt != -1:
                 count += 1
-        self.hanging_polyhedrons += count/2
+        self.hanging_polyhedrons += count
         if count > 2:
             print("Edge:", e, "count:", count)
             return True
@@ -198,39 +206,40 @@ class PolyllaEdge:
                     v3 = self.mesh.face_list[f].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
-    def printOFF_polyhedralmesh(self, filename):
-        print("writing OFF file: "+ filename)
-        list_face = []
-        for polyhedron in self.polyhedron_mesh:
-            list_face.extend(polyhedron)
-        list_face =  list(dict.fromkeys(list_face))
-        with open(filename, 'w') as fh:
-            fh.write("OFF\n")
-            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
-            for v in self.mesh.node_list:
-                fh.write("%f %f %f\n" % (v.x, v.y, v.z))
-            for f in list_face:
-                v1 = self.mesh.face_list[f].v1
-                v2 = self.mesh.face_list[f].v2
-                v3 = self.mesh.face_list[f].v3
-                fh.write("3 %d %d %d\n" % (v1, v2, v3))
+    #def printOFF_polyhedralmesh(self, filename):
+    #    print("writing OFF file: "+ filename)
+    #    list_face = []
+    #    for polyhedron in self.polyhedron_mesh:
+    #        list_face.extend(polyhedron)
+    #    list_face =  list(dict.fromkeys(list_face))
+    #    with open(filename, 'w') as fh:
+    #        fh.write("OFF\n")
+    #        fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
+    #        for v in self.mesh.node_list:
+    #            fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+    #        for f in list_face:
+    #            v1 = self.mesh.face_list[f].v1
+    #            v2 = self.mesh.face_list[f].v2
+    #            v3 = self.mesh.face_list[f].v3
+    #            fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
     def get_info(self):
         print("PolyllaEdge info:")
-        print("Number of polyhedrons:", len(self.polyhedron_mesh))
+        print("Number of polyhedrons:", len(self.polyhedral_mesh))
         print("Number of barrier-edges:", self.barrier_edges)
-        print("Number of hanging polyhedrons:", self.hanging_polyhedrons)
-        num_of_tetra = 0
-        for i in range(0, len(self.polyhedron_mesh)):
-            if len(self.polyhedron_mesh[i]) == 4:
-                num_of_tetra += 1
-        print("Number of polyhedrons that are tetrahedrons: " + str(num_of_tetra))
+        print("Number of hanging polyhedrons:", self.hanging_polyhedrons/2)
+        #calcaulte the number of polyhedrons that containts only one tetrahedron
+        count = 0
+        for polyhedron in self.polyhedral_mesh:
+            if len(polyhedron.tetras) == 1:
+                count += 1
+        print("Number of polyhedrons that are tetrahedrons: " + str(count))
 
 if __name__ == "__main__":
     folder = "data\\"
     #file = "3D_100.1"
-    #file = "socket.1"
-    file = "1000points.1"
+    file = "socket.1"
+    #file = "1000points.1"
     filename = folder + file
     node_file = filename + ".node"
     ele_file = filename + ".ele"
@@ -245,5 +254,5 @@ if __name__ == "__main__":
 #        #print(polylla_mesh.polyhedron_mesh[i])
 #        polylla_mesh.printOFF_faces(folder + file + "POLYLLAEDGE_polyhedron_" + str(i) + ".off", polylla_mesh.polyhedron_mesh[i])
 #    print(polylla_mesh.polyhedron_mesh[0])
-    polylla_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAEDGE.off")
+    #polylla_mesh.printOFF_polyhedralmesh(folder + file + "POLYLLAEDGE.off")
     polylla_mesh.get_info()
