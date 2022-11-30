@@ -54,9 +54,6 @@ class PolyllaEdge:
             #Remove repeat faces, those faces are interior faces
             polyhedron = [el for el, cnt in Counter(polyhedron_faces).items() if cnt==1]
             poly.faces.extend(polyhedron)
-            #print("tetras:", poly.tetras)
-            #print("Faces:", poly.faces)
-            #print("Was repaired:", poly.was_repaired)
     
     ## Function to detect and polyhedrons with hanging tetrahedrons
     ## Return a list of lists of polyhedrons
@@ -73,10 +70,7 @@ class PolyllaEdge:
             if self.detec_barrier_edge(edge, polyhedron):
                 flag = True
                 self.barrier_edges += 1
-                print("Polyhedron", polyhedron, "has a hanging tetrahedron")
                 new_polyhedrons.extend(self.separate_polyhedron(edge, polyhedron))
-                print("New polyhedrons:", new_polyhedrons)
-
         # if a barrier_edge was detected
         if flag:           
             return new_polyhedrons     
@@ -98,7 +92,6 @@ class PolyllaEdge:
                 pos_origin = i
                 break 
         curr = (pos_origin + 1) % len(Te)
-        print("Te:", Te, "pos_origin:", pos_origin, "curr:", curr)
         new_polyhedrons = []
         while curr != pos_origin:
             # If there is a hanging tetrahedron
@@ -109,7 +102,6 @@ class PolyllaEdge:
                     polyhedron.append(Te[curr])
                     curr = (curr + 1) % len(Te)
                 new_polyhedrons.append(polyhedron)
-                print("Te:", Te, "pos_origin:", pos_origin, "curr:", curr)
             else:
                 #Advance until reach an haing tetrahedron
                 curr = (curr + 1) % len(Te)
@@ -120,12 +112,10 @@ class PolyllaEdge:
         ## list of tetrahedros adjacent to edge e
         #to avoid change the original list que uses copy
         Te = self.mesh.edge_list[e].tetrahedrons.copy() 
-        #print("Te", Te, "polyhedron", polyhedron)
         for t in range(0,len(Te)):
             if Te[t] not in polyhedron:
                 Te[t] = -1
         count = 0
-        #print("Edge:", e, "tetrahedrons:", Te)
         for i in range(0,len(Te)):
             first = Te[i]
             nxt = Te[(i+1)%len(Te)]
@@ -137,14 +127,12 @@ class PolyllaEdge:
                 count += 1
         self.hanging_polyhedrons += count
         if count > 2:
-            print("Edge:", e, "count:", count)
             return True
         return False
 
 
 
     def DepthFirstSearch(self, polyhedron, edge):
-        #print("Edge:", edge, "tetrahedrons", self.mesh.edge_list[edge].tetrahedrons)
         for tetra in self.mesh.edge_list[edge].tetrahedrons:
             if self.visited_tetra[tetra] == False:
                 self.visited_tetra[tetra] = True
