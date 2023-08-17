@@ -41,7 +41,7 @@ vertex = [(0,0,1,2), (1,0,2,3),(2,4,5,6),(3,4,6,7),(4,4,1,0),(5,4,5,1),(6,5,6,2)
 edges = []
 vertex_list = []
 face_list = []
-
+print("Reading vertex file")
 filev = open(vertexs, 'r')
 
 for line in filev:
@@ -49,15 +49,19 @@ for line in filev:
 	v = Vertex(l[0], l[1], l[2], l[3])
 	vertex_list.append(v)
 	a.append([[],[]]) 
-
+print("Reading face file")
 filef = open(faces, 'r')
-fi = 0
-for l in vertex:
-	#l = line.split()
-	v1 = l[1]
-	v2 = l[2]
-	v3 = l[3]
-	f = Face(l[0], v1,v2,v3)
+#fi = 0
+for line in filef:
+	l = line.split()
+	if l[0] == '#' or len(l) < 4:
+		continue
+	#print(l)
+	v1 = int(l[1])
+	v2 = int(l[2])
+	v3 = int(l[3])
+	fi = int(l[0])
+	f = Face(fi, v1,v2,v3)
 	face_list.append(f)
 
 	savedE1 = False
@@ -67,43 +71,44 @@ for l in vertex:
 
 	if v2 not in a[v1][0] and v1 not in a[v2][0]:
 		a[v1][0].append(v2)
-		a[v1][1].append([l[0]])
+		a[v1][1].append([fi])
 		savedE1 = True
 
 	if v3 not in a[v2][0] and v2 not in a[v3][0]:
 		a[v2][0].append(v3)
-		a[v2][1].append([l[0]])
+		a[v2][1].append([fi])
 		savedE2 = True
 	if v1 not in a[v3][0] and v3 not in a[v1][0]:
 		a[v3][0].append(v1)
-		a[v3][1].append([l[0]])
+		a[v3][1].append([fi])
 		savedE3 = True
 
 	#if it isn't saved it already exist (only two optinos)
 	if not savedE1:
 		if v2 in a[v1][0]:
 			index = a[v1][0].index(v2)
-			a[v1][1][index].append(l[0])
+			a[v1][1][index].append(fi)
 		else:
 			index = a[v2][0].index(v1)
-			a[v2][1][index].append(l[0])
+			a[v2][1][index].append(fi)
 
 	if not savedE2:
 		if v3 in a[v2][0]:
 			index = a[v2][0].index(v3)
-			a[v2][1][index].append(l[0])
+			a[v2][1][index].append(fi)
 		else:
 			index = a[v3][0].index(v2)
-			a[v3][1][index].append(l[0])
+			a[v3][1][index].append(fi)
 	if not savedE3:
 		if v1 in a[v3][0]:
 			index = a[v3][0].index(v1)
-			a[v3][1][index].append(l[0])
+			a[v3][1][index].append(fi)
 		else:
 			index = a[v1][0].index(v3)
-			a[v1][1][index].append(l[0])
+			a[v1][1][index].append(fi)
 	#fi +=1
 ei = 0
+print("Processing edges ")
 for vi in range(len(a)):
 	for i in range(len(a[vi][0])):
 		vf = a[vi][0][i]
@@ -117,5 +122,5 @@ for vi in range(len(a)):
 			face.edges.append(ei)
 		ei += 1
 
-print(edges)
-print(face_list)
+#print(edges)
+#print(face_list)
