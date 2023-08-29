@@ -12,30 +12,30 @@ class Vertex:
         self.z = z
 
 class Face:
-    def __init__(self, i, v1, v2, v3 ):
-        self.i = i
-        self.v1 = v1
-        self.v2 = v2
-        self.v3 = v3
-        self.edges = [] #tetra case 3, poly case at least 3
+	def __init__(self, i, v1, v2, v3 ):
+		self.i = i
+		self.v1 = v1
+		self.v2 = v2
+		self.v3 = v3
+		self.edges = [] #tetra case 3, poly case at least 3
 
-    def __repr__(self):
-    	return str(self)
+	def __repr__(self):
+		return str(self)
 
-    def __str__(self):
-    	return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + ")\n"
+	def __str__(self):
+		return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + ")\n"
 class Edge:
-    def __init__(self, i, end_point1, end_point2) -> None:
-        self.i = i
-        self.v1 = end_point1
-        self.v2 = end_point2
-        self.faces = [] # boundary case 2, internal case at least 3
+	def __init__(self, i, end_point1, end_point2) -> None:
+		self.i = i
+		self.v1 = end_point1
+		self.v2 = end_point2
+		self.faces = [] # boundary case 2, internal case at least 3
 
-    def __repr__(self):
-    	return str(self)
+	def __repr__(self):
+		return str(self)
 
-    def __str__(self):
-    	return "(Edge " + str(self.i) + " Vertex i: " + str(self.v1) + " Vertex f: " + str(self.v2) + " Faces: " + str(self.faces) + ")\n"
+	def __str__(self):
+		return "(Edge " + str(self.i) + " Vertex i: " + str(self.v1) + " Vertex f: " + str(self.v2) + " Faces: " + str(self.faces) + ")\n"
 a = []
 vertex = [(0,0,1,2), (1,0,2,3),(2,4,5,6),(3,4,6,7),(4,4,1,0),(5,4,5,1),(6,5,6,2),(7,5,2,1),(8,6,7,3),(9,6,3,2),(10,7,4,0),(11,7,0,3)]
 edges = []
@@ -123,4 +123,4 @@ for vi in range(len(a)):
 		ei += 1
 
 #print(edges)
-#print(face_list)
+print(face_list)
