@@ -34,7 +34,7 @@ class Face:
         return str(self)
 
     def __str__(self):
-        return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + ")\n"
+        return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + " Neighs: " + str(self.neighs) + ")\n"
 class Edge:
     def __init__(self, i, end_point1, end_point2) -> None:
         self.i = i
@@ -66,7 +66,7 @@ class Tetrahedron:
         return str(self)
 
     def __str__(self):
-        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + ")\n"
+        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Neighs" + str(self.neighs) +")\n"
     
 
 def look_for_faces(v1, v2, v3, v4, tetra, face_list):
@@ -76,28 +76,43 @@ def look_for_faces(v1, v2, v3, v4, tetra, face_list):
       for face in face_list:
             if c >= 4:
                   break
-            if v1 in face.vertex and v2 in face.vertex and v3 in face.vertex:
+            if (v1 in face.vertex) and (v2 in face.vertex) and (v3 in face.vertex):
                   faces.append(face.i)
+                  if(len(face.neighs)>0):
+                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
-            if v2 in face.vertex and v3 in face.vertex and v4 in face.vertex:
+            if (v2 in face.vertex) and (v3 in face.vertex) and (v4 in face.vertex):
                   faces.append(face.i)
+                  if(len(face.neighs)>0):
+                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
-            if v3 in face.vertex and v4 in face.vertex and v1 in face.vertex:
+            if (v3 in face.vertex) and (v4 in face.vertex) and (v1 in face.vertex):
                   faces.append(face.i)
+                  if(len(face.neighs)>0):
+                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
-            if v4 in face.vertex and v2 in face.vertex and v1 in face.vertex:
+            if (v4 in face.vertex) and (v2 in face.vertex) and (v1 in face.vertex):
                   faces.append(face.i)
+                  if(len(face.neighs)>0):
+                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
       tetra.edge = list(set(edges))
       return faces
+
+def saveLog(filename, info_list):
+      f = open(filename,'w')
+      for i in info_list:
+            f.write(str(i))
+
+
 a = []
 vertex_list = []
 edge_list = []
@@ -211,4 +226,6 @@ for line in filet:
     savedF2 = False
     savedF3 = False
     savedF4 = False
-print(tetra_list)
+#print(tetra_list)
+saveLog("logTetra.txt", tetra_list)
+saveLog("logFace.txt", face_list)
