@@ -1,9 +1,5 @@
 import sys
-arguments = sys.argv
-
-vertexs = arguments[1]
-faces = arguments[2]
-tetras = arguments[3]
+import time
 
 class Vertex:
     def __init__(self, i, x, y, z):
@@ -69,6 +65,114 @@ class Tetrahedron:
         return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Neighs" + str(self.neighs) +")\n"
     
 
+def save_vertex(file):
+    matrix = []
+    vertex_list = []
+    for line in file:
+        l = line.split()
+        v = Vertex(int(l[0]), float(l[1]), float(l[2]), float(l[3]))
+        vertex_list.append(v)
+        matrix.append([[],[]]) # in c++ is not necessary
+    return vertex_list,matrix
+
+def save_faces(file, edges_matrix):
+    
+    face_list = []
+    
+    for line in file:
+        l = line.split()
+        if l[0] == '#' or len(l) < 4:
+            continue
+        #print(l)
+        v1 = int(l[1])
+        v2 = int(l[2])
+        v3 = int(l[3])
+        fi = int(l[0])
+        f = Face(fi, v1,v2,v3)
+        face_list.append(f)
+
+        savedE1 = False
+        savedE2 = False
+        savedE3 = False
+
+
+        if v2 not in edges_matrix[v1][0] and v1 not in edges_matrix[v2][0]:
+            edges_matrix[v1][0].append(v2)
+            edges_matrix[v1][1].append([fi])
+            savedE1 = True
+
+        if v3 not in edges_matrix[v2][0] and v2 not in edges_matrix[v3][0]:
+            edges_matrix[v2][0].append(v3)
+            edges_matrix[v2][1].append([fi])
+            savedE2 = True
+        if v1 not in edges_matrix[v3][0] and v3 not in edges_matrix[v1][0]:
+            edges_matrix[v3][0].append(v1)
+            edges_matrix[v3][1].append([fi])
+            savedE3 = True
+
+        #if it isn't saved it already exist (only two options)
+        if not savedE1:
+            if v2 in edges_matrix[v1][0]:
+                index = edges_matrix[v1][0].index(v2)
+                edges_matrix[v1][1][index].append(fi)
+            else:
+                index = edges_matrix[v2][0].index(v1)
+                edges_matrix[v2][1][index].append(fi)
+
+        if not savedE2:
+            if v3 in edges_matrix[v2][0]:
+                index = edges_matrix[v2][0].index(v3)
+                edges_matrix[v2][1][index].append(fi)
+            else:
+                index = edges_matrix[v3][0].index(v2)
+                edges_matrix[v3][1][index].append(fi)
+        if not savedE3:
+            if v1 in edges_matrix[v3][0]:
+                index = edges_matrix[v3][0].index(v1)
+                edges_matrix[v3][1][index].append(fi)
+            else:
+                index = edges_matrix[v1][0].index(v3)
+                edges_matrix[v1][1][index].append(fi)
+    return face_list
+
+def save_edges(matrix, face_list):
+    edge_list = []
+    ei = 0
+    print("Processing edges ")
+    for vi in range(len(matrix)):
+        for i in range(len(matrix[vi][0])):
+            vf = matrix[vi][0][i]
+            faces = matrix[vi][1][i]
+            edge = Edge(ei,vi,vf)
+            edge.faces = faces
+            edge_list.append(edge)
+            
+            for f in faces:
+                face = face_list[f]
+                face.edges.append(ei)
+            ei += 1
+    return edge_list
+
+def save_tetra(file,face_list):
+
+    tetra_list = []
+
+    for line in file:
+        l = line.split()
+        if l[0] == '#' or len(l) < 5:
+            continue
+        #print(l)
+        v1 = int(l[1])
+        v2 = int(l[2])
+        v3 = int(l[3])
+        v4 = int(l[4])
+        ti = int(l[0])
+        t = Tetrahedron(ti, v1,v2,v3,v4)
+        tetra_list.append(t)
+
+        t.faces = look_for_faces(v1,v2,v3,v4,t,face_list)
+    return tetra_list
+
 def look_for_faces(v1, v2, v3, v4, tetra, face_list):
       faces = []
       edges = []
@@ -113,119 +217,28 @@ def saveLog(filename, info_list):
             f.write(str(i))
 
 
-a = []
-vertex_list = []
-edge_list = []
-face_list = []
-tetra_list = []
+
+arguments = sys.argv
+
+vertexs = arguments[1]
+faces = arguments[2]
+tetras = arguments[3]
+t0= time.time()
 print("Reading vertex file")
 filev = open(vertexs, 'r')
+vertex_list, edges_matrix = save_vertex(filev)
 
-for line in filev:
-	l = line.split()
-	v = Vertex(l[0], l[1], l[2], l[3])
-	vertex_list.append(v)
-	a.append([[],[]]) 
-        
 print("Reading face file")
 filef = open(faces, 'r')
-#fi = 0
-for line in filef:
-	l = line.split()
-	if l[0] == '#' or len(l) < 4:
-		continue
-	#print(l)
-	v1 = int(l[1])
-	v2 = int(l[2])
-	v3 = int(l[3])
-	fi = int(l[0])
-	f = Face(fi, v1,v2,v3)
-	face_list.append(f)
+face_list = save_faces(filef, edges_matrix)
 
-	savedE1 = False
-	savedE2 = False
-	savedE3 = False
-
-
-	if v2 not in a[v1][0] and v1 not in a[v2][0]:
-		a[v1][0].append(v2)
-		a[v1][1].append([fi])
-		savedE1 = True
-
-	if v3 not in a[v2][0] and v2 not in a[v3][0]:
-		a[v2][0].append(v3)
-		a[v2][1].append([fi])
-		savedE2 = True
-	if v1 not in a[v3][0] and v3 not in a[v1][0]:
-		a[v3][0].append(v1)
-		a[v3][1].append([fi])
-		savedE3 = True
-
-	#if it isn't saved it already exist (only two optinos)
-	if not savedE1:
-		if v2 in a[v1][0]:
-			index = a[v1][0].index(v2)
-			a[v1][1][index].append(fi)
-		else:
-			index = a[v2][0].index(v1)
-			a[v2][1][index].append(fi)
-
-	if not savedE2:
-		if v3 in a[v2][0]:
-			index = a[v2][0].index(v3)
-			a[v2][1][index].append(fi)
-		else:
-			index = a[v3][0].index(v2)
-			a[v3][1][index].append(fi)
-	if not savedE3:
-		if v1 in a[v3][0]:
-			index = a[v3][0].index(v1)
-			a[v3][1][index].append(fi)
-		else:
-			index = a[v1][0].index(v3)
-			a[v1][1][index].append(fi)
-	#fi +=1
-ei = 0
-print("Processing edges ")
-for vi in range(len(a)):
-	for i in range(len(a[vi][0])):
-		vf = a[vi][0][i]
-		faces = a[vi][1][i]
-		edge = Edge(ei,vi,vf)
-		edge.faces = faces
-		edge_list.append(edge)
-		
-		for f in faces:
-			face = face_list[f]
-			face.edges.append(ei)
-		ei += 1
-
-#print(edges)
-print(face_list)
+print("Processing edges")
+edge_list = save_edges(edges_matrix, face_list)
 
 print("Reading tetrahedron file")
 filet = open(tetras, 'r')
-#fi = 0
-
-for line in filet:
-    l = line.split()
-    if l[0] == '#' or len(l) < 5:
-        continue
-    #print(l)
-    v1 = int(l[1])
-    v2 = int(l[2])
-    v3 = int(l[3])
-    v4 = int(l[4])
-    ti = int(l[0])
-    t = Tetrahedron(ti, v1,v2,v3,v4)
-    tetra_list.append(t)
-
-    t.faces = look_for_faces(v1,v2,v3,v4,t,face_list)
-
-    savedF1 = False
-    savedF2 = False
-    savedF3 = False
-    savedF4 = False
-#print(tetra_list)
-saveLog("logTetra.txt", tetra_list)
-saveLog("logFace.txt", face_list)
+tetra_list = save_tetra(filet,face_list)
+tf = time.time()
+print("Processing the data:", (tf-t0), "segundos")
+# saveLog("logTetra.txt", tetra_list)
+# saveLog("logFace.txt", face_list)

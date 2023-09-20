@@ -22,14 +22,14 @@ class Vertex:
         self.z = z
 
 class Face:
-    def __init__(self, i, v1, v2, v3 ):#, boundary, n1, n2 ):
+    def __init__(self, i, v1, v2, v3, boundary, n1, n2 ):
         self.i = i
         self.v1 = v1
         self.v2 = v2
         self.v3 = v3
-        #self.is_boundary = boundary
-        self.n1 = -1
-        self.n2 = -1
+        self.is_boundary = boundary
+        self.n1 = n1
+        self.n2 = n2
         self.edges = []
         self.area = -1
 
@@ -79,7 +79,6 @@ class TetrahedronMesh:
         f.close()
         return node_list
 
-
     def read_face_file(self, filename):
         print("reading face file: "+ filename)
         f = open(filename, "r")
@@ -99,36 +98,6 @@ class TetrahedronMesh:
                 face_list.append(face_temp)
         f.close()
         return face_list
-
-    def read_face_file2(self, filename):
-        print("reading face file: "+ filename)
-        f = open(filename, "r")
-        face_list = []
-        edge_list = []
-        next(f)
-        for line in f:
-            line = line.split()
-            ## v1, v2, v3, boundary_marker, n1, n2
-            if line[0] != '#':
-                v1 = int(line[1])
-                v2 = int(line[2])
-                v3 = int(line[3])
-                #boundary_marker = (int(line[4]) == 1 or int(line[4]) == -1)
-                #n1 = int(line[5])
-                #n2 = int(line[6])
-                face_temp = Face(int(line[0]), v1, v2, v3)
-                face_list.append(face_temp)
-                #edge_temp1 = Edge(int(line[0]*3), v1, v2)
-                #edge_temp2 = Edge(int(line[0]*3 + 1), v2, v3)
-                #edge_temp3 = Edge(int(line[0]*3 + 2), v3, v1)
-                #edge_list.append(edge_temp1)
-                #edge_list.append(edge_temp2)
-                #edge_list.append(edge_temp3)
-
-        f.close()
-
-        return face_list
-
 
     def read_ele_file(self, filename):
         print("reading ele file: "+ filename)
@@ -333,4 +302,3 @@ if __name__ == "__main__":
     mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
     for edge in mesh.edge_list:
         print(edge.i, edge.v1, edge.v2, edge.tetrahedrons, edge.faces, edge.first_tetra)
-        
