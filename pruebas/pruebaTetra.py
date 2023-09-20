@@ -182,29 +182,21 @@ def look_for_faces(v1, v2, v3, v4, tetra, face_list):
                   break
             if (v1 in face.vertex) and (v2 in face.vertex) and (v3 in face.vertex):
                   faces.append(face.i)
-                  if(len(face.neighs)>0):
-                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
             if (v2 in face.vertex) and (v3 in face.vertex) and (v4 in face.vertex):
                   faces.append(face.i)
-                  if(len(face.neighs)>0):
-                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
             if (v3 in face.vertex) and (v4 in face.vertex) and (v1 in face.vertex):
                   faces.append(face.i)
-                  if(len(face.neighs)>0):
-                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
             if (v4 in face.vertex) and (v2 in face.vertex) and (v1 in face.vertex):
                   faces.append(face.i)
-                  if(len(face.neighs)>0):
-                        tetra.neighs += face.neighs
                   face.neighs.append(tetra.i)
                   edges += face.edges
                   c += 1
