@@ -461,6 +461,12 @@ class TetrahedronMesh:
         print("Number of tetrahedrons: ", len(self.tetra_list))
         print("Number of edges: ", len(self.edge_list))
 
+    def saveLog(self, filename, info_list):
+      f = open(filename,'w')
+      for i in info_list:
+            f.write(str(i))
+
+
 
 def save_vertex(file):
         matrix = []

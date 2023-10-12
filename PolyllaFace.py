@@ -237,6 +237,7 @@ class PolyllaFace:
     def DepthFirstSearch(self, polyhedron, polyhedron_tetras, tetra):
         self.visited_tetra[tetra] = True
         polyhedron_tetras.append(tetra)
+        # not_fronteir_index = 0
         ## for each face of tetra
         for i in range(0, 4):
             face_id = self.mesh.tetra_list[tetra].faces[i]
@@ -244,9 +245,12 @@ class PolyllaFace:
             if face_id != -1:
                 #si la cara es un frontier-face, entonces no se sigue la recursión
                 if self.bitvector_frontier_edges[face_id] == True:
+                    # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n','fronteir', self.mesh.face_list[face_id])
                     polyhedron.append(face_id)
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
+                    # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n', self.mesh.face_list[face_id])
                     next_tetra = tetra_neighs[i]
+                    # not_fronteir_index += 1
                     if(self.visited_tetra[next_tetra] == False):
                         self.DepthFirstSearch(polyhedron, polyhedron_tetras, next_tetra)
         
@@ -335,6 +339,7 @@ class PolyllaFace:
         polyhedron_tetras.append(tetra)
         # tetra es remove as candidate for generation of poliedron
         self.bivector_seed_tetra_in_repair[tetra] = False 
+        # not_fronteir_index = 0
         ## for each face of tetra
         for i in range(0, 4):
             face_id = self.mesh.tetra_list[tetra].faces[i]
@@ -345,6 +350,7 @@ class PolyllaFace:
                     polyhedron.append(face_id)
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
+                    # not_fronteir_index += 1
                     if(self.visited_tetra[next_tetra] == False):
                         self.DepthFirstSearch_in_repair(polyhedron, polyhedron_tetras, next_tetra)
 

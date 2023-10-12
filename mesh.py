@@ -45,6 +45,12 @@ class Tetrahedron:
         self.faces = []
         self.edges = []
 
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) + ")\n"
+
 class Edge:
     def __init__(self, i, end_point1, end_point2) -> None:
         self.i = i

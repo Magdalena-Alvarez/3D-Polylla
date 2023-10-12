@@ -1,6 +1,12 @@
 import sys
 import time
 
+class Polyhedron:
+    def __init__(self):
+        self.tetras = []
+        self.faces = []
+        self.was_repaired = False
+
 class Vertex:
     def __init__(self, i, x, y, z):
         self.i = i  
@@ -66,7 +72,7 @@ class Tetrahedron:
         return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) + ")\n"
     
 
-class TetrahedronMesh:
+class FaceTetrahedronMesh:
     def __init__(self, node_file, face_file, tetra_file):
         self.node_list, self.face_list, self.tetra_list, self.edge_list = self.construct_tetrahedral_mesh(node_file, face_file, tetra_file)
         self.n_tetrahedrons = len(self.tetra_list)
@@ -307,6 +313,8 @@ class TetrahedronMesh:
             if not face_list[face].is_boundary:
                 face_list[face].n2 = face_list[face].neighs[1]
                 if face_list[face].n2 !=tetra.i: neighs.append(face_list[face].n2)
+            else:
+                neighs.append(-1)
 
         # set_version = set(neighs)
         tetra.neighs = neighs
@@ -500,6 +508,8 @@ class TetrahedronMesh:
         print("Number of faces: ", len(self.face_list))
         print("Number of tetrahedrons: ", len(self.tetra_list))
         print("Number of edges: ", len(self.edge_list))
+
+        
 
 
 def save_vertex(file):
