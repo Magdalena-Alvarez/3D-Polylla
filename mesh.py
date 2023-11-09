@@ -33,6 +33,12 @@ class Face:
         self.edges = []
         self.area = -1
 
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + " Neighs: " + str(self.n1) + ','+ str(self.n2) + ")\n"
+
 class Tetrahedron:
     def __init__(self, i, v1, v2, v3, v4):
         self.i = i
@@ -62,6 +68,12 @@ class Edge:
         self.faces = []
         # Length is saved for the polyhedralization process
         self.length = -1
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return "(Edge " + str(self.i) + " Vertex i: " + str(self.v1) + " Vertex f: " + str(self.v2) + " Faces: " + str(self.faces) + ")\n"
+
 
 class TetrahedronMesh:
     def __init__(self, node_file, face_file, tetra_file, edge_file):

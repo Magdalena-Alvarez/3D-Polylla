@@ -362,13 +362,13 @@ class PolyllaFace:
             print("writing OFF file: "+ filename)
             with open(filename, 'w') as fh:
                 fh.write("OFF\n")
-                fh.write("%d %d 0\n" % (mesh.n_nodes, len(faces)))
+                fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(faces)))
                 for v in self.mesh.node_list:
                     fh.write("%f %f %f\n" % (v.x, v.y, v.z))
                 for f in faces:
-                    v1 = self.mesh.face_list[f].v1
-                    v2 = self.mesh.face_list[f].v2
-                    v3 = self.mesh.face_list[f].v3
+                    v1 = self.mesh.face_list[f.i].v1
+                    v2 = self.mesh.face_list[f.i].v2
+                    v3 = self.mesh.face_list[f.i].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
     def printOFF_polyhedralmesh(self, filename):
