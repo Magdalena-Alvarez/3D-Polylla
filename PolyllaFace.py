@@ -5,6 +5,9 @@ import numpy as np
 import sys
 from collections import Counter
 from math import floor
+import random
+import matplotlib.pyplot as plt
+import numpy as np
 
 class PolyllaFace:
     def __init__(self, mesh):
@@ -34,7 +37,7 @@ class PolyllaFace:
                 ##generate a list with all the  barrier-face tips 
                 barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
                 ## Sent the polyhedron to repair
-                self.repairPhase(polyhedron, barrierFacesTips)
+                self.repairPhase(polyhedron, barrierFacesTips) #--> al comentarla quedan iguales
             else:
                 poly = Polyhedron()
                 poly.tetras = polyhedron_tetras.copy()
@@ -120,6 +123,9 @@ class PolyllaFace:
                 longest_faces.append(3)
             else:
                 print("Error en la funcion calculate_max_incircle_faces")
+            # index_max_face = longest_faces[len(longest_faces)-1]
+            # coordsmaxface = [self.mesh.face_list[longest_faces[len(longest_faces)-1]]]
+        # print(longest_faces)
         return longest_faces
 
 
@@ -250,6 +256,23 @@ class PolyllaFace:
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n', self.mesh.face_list[face_id])
                     next_tetra = tetra_neighs[i]
+                    v1_i = self.mesh.face_list[face_id].v1
+                    v2_i = self.mesh.face_list[face_id].v2
+                    v3_i = self.mesh.face_list[face_id].v3
+                    v1 = self.mesh.node_list[v1_i]
+                    v2 = self.mesh.node_list[v2_i]
+                    v3 = self.mesh.node_list[v3_i]
+                    # face_coords = [[v1.x,v1.y,v1.z],[v2.x,v2.y,v2.z],[v3.x,v3.y,v3.z]]
+                    # x =np.array([v1.x,v2.x,v3.y])
+                    # y = np.array([v1.y,v2.y,v3.y])
+                    # z = np.array([v1.z,v2.z,v3.z])
+                    # fig = plt.figure()
+                    # ax = fig.add_subplot(projection='3d')
+                    # ax = plt.figure().add_subplot(projection='3d')
+
+                    # ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
+
+                    # plt.show()
                     # not_fronteir_index += 1
                     if(self.visited_tetra[next_tetra] == False):
                         self.DepthFirstSearch(polyhedron, polyhedron_tetras, next_tetra)
@@ -288,14 +311,18 @@ class PolyllaFace:
     def repairPhase(self, polyhedron, barrierFaceTips):
         tetra_list = []
         barrierFace = -1
+        # print('repair phase:')
         for e in barrierFaceTips:
             #search polyhedron that contains the edge e
             for face in polyhedron:
                 if e in self.mesh.face_list[face].edges:
                     barrierFace = face
+                    # print('edge: ', self.mesh.edge_list[e], 'face: ', face)
                     break
             # select the middle face indicent to e
             faces_of_barrierFaceTip = self.mesh.edge_list[e].faces
+            faces_of_barrierFaceTip.sort()
+            # print('edge',self.mesh.edge_list[e].i, ':', faces_of_barrierFaceTip)
             
             n_internalFaces = len(faces_of_barrierFaceTip) - 1 
             #int adv = (internal_edges%2 == 0) ? internal_edges/2 - 1 : internal_edges/2 ;
@@ -375,7 +402,7 @@ class PolyllaFace:
         print("writing OFF file: "+ filename)
         list_face = []
         for polyhedron in self.polyhedral_mesh:
-            list_face.extend(polyhedron)
+            list_face.append(polyhedron)
         list_face =  list(dict.fromkeys(list_face))
         with open(filename, 'w') as fh:
             fh.write("OFF\n")
@@ -388,8 +415,29 @@ class PolyllaFace:
                 v3 = self.mesh.face_list[f].v3
                 fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
-
-
+    def printOFF_each_poly(self,filename):
+        print("writing OFF files: "+ filename)
+        i = 0
+        for polyhedron in self.polyhedral_mesh:
+            list_face = polyhedron.faces
+            nodes = []
+            with open(filename+str(i)+'.off', 'w') as fh:
+                fh.write("OFF\n")
+                for tetra in polyhedron.tetras:
+                    vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
+                    for v in vertex:
+                        if v not in nodes :
+                            nodes.append(v) 
+                fh.write("%d %d 0\n" % (len(nodes), len(list_face)))
+                for node in nodes:
+                    v = self.mesh.node_list[node]
+                    fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+                for f in list_face:
+                    v1 = nodes.index(self.mesh.face_list[f].v1)
+                    v2 = nodes.index(self.mesh.face_list[f].v2)
+                    v3 = nodes.index(self.mesh.face_list[f].v3)
+                    fh.write("3 %d %d %d\n" % (v1, v2, v3))
+            i+=1
 
     def get_info(self):
         print("PolyllaFace info:")
