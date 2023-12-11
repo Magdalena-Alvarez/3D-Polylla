@@ -133,5 +133,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-pruebas/Experimentos/
+pruebas/
 .vscode/c_cpp_properties.json
