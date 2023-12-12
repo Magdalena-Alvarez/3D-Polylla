@@ -1,6 +1,12 @@
 import sys
 import time
 
+class Polyhedron:
+    def __init__(self):
+        self.tetras = []
+        self.faces = []
+        self.was_repaired = False
+
 class Vertex:
     def __init__(self, i, x, y, z):
         self.i = i  
@@ -24,13 +30,14 @@ class Face:
         self.n1 = -1
         self.n2 = -1
         self.neighs = []
+        self.is_boundary = False
         self.edges = [] #tetra case 3, poly case at least 3
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + " Neighs: " + str(self.neighs) + ")\n"
+        return "(Face " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Edges: " + str(self.edges) + " Neighs: " + str(self.n1) + ','+ str(self.n2) + ")\n"
 class Edge:
     def __init__(self, i, end_point1, end_point2) -> None:
         self.i = i
@@ -45,6 +52,11 @@ class Edge:
     def __str__(self):
         return "(Edge " + str(self.i) + " Vertex i: " + str(self.v1) + " Vertex f: " + str(self.v2) + " Faces: " + str(self.faces) + ")\n"
 
+class PolyllaEdge_Edge(Edge):
+    def __init__(self, i, end_point1, end_point2) -> None:
+        super().__init__(i, end_point1, end_point2)
+        self.tetrahedrons = []
+
 class Tetrahedron:
     def __init__(self, i, v1, v2, v3, v4):
         self.i = i
@@ -53,7 +65,7 @@ class Tetrahedron:
         self.v3 = v3
         self.v4 = v4
         self.vertex = [v1,v2,v3,v4]
-        # self.neighs = [] #4 neighs not necessary, we can use faces neighs
+        self.neighs = [] #4 neighs not necessary, we can use faces neighs
         self.is_boundary = False #if len(neighs) > 4 True
         self.faces = []
         self.edges = []
@@ -62,10 +74,10 @@ class Tetrahedron:
         return str(self)
 
     def __str__(self):
-        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) +")\n"
+        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) + ")\n"
     
 
-class TetrahedronMesh:
+class EdgeTetrahedronMesh:
     def __init__(self, node_file, face_file, tetra_file):
         self.node_list, self.face_list, self.tetra_list, self.edge_list = self.construct_tetrahedral_mesh(node_file, face_file, tetra_file)
         self.n_tetrahedrons = len(self.tetra_list)
@@ -73,37 +85,28 @@ class TetrahedronMesh:
         self.n_nodes = len(self.node_list)
         self.n_edges = len(self.edge_list)
     
-    def save_vertex(self,file):
+    def save_vertex(self,filev):
         matrix = []
         vertex_list = []
+        file = open(filev, "r")
+        next(file)
         for line in file:
             l = line.split()
+            if l[0] == '#':
+                continue
             v = Vertex(int(l[0]), float(l[1]), float(l[2]), float(l[3]))
             vertex_list.append(v)
             matrix.append([[],[]]) # in c++ is not necessary
         return vertex_list,matrix
-
-    # def read_node_file(self, filename):
-    #     print("reading node file: "+ filename)
-    #     f = open(filename, "r")
-    #     node_list = []
-    #     next(f)
-    #     for line in f:
-    #         line = line.split()
-    #         #v1, v2, v3, boundary_marker
-    #         if line[0] != '#':
-    #             node_temp = Vertex(int(line[0]), float(line[1]), float(line[2]), float(line[3]))
-    #             node_list.append(node_temp)
-    #     f.close()
-    #     return node_list
     
-    def save_faces(self, file, edges_matrix):
+    def save_faces(self, filef, edges_matrix):
     
         face_list = []
-        
+        file = open(filef, "r")
+        next(file)
         for line in file:
             l = line.split()
-            if l[0] == '#' or len(l) < 4:
+            if l[0] == '#':
                 continue
             #print(l)
             v1 = int(l[1])
@@ -157,6 +160,323 @@ class TetrahedronMesh:
                     edges_matrix[v1][1][index].append(fi)
         return face_list
 
+    
+    def save_edges(self, matrix, face_list):
+        edge_list = []
+        ei = 0
+        for vi in range(len(matrix)):
+            for i in range(len(matrix[vi][0])):
+                vf = matrix[vi][0][i]
+                faces = matrix[vi][1][i]
+                edge = PolyllaEdge_Edge(ei,vi,vf)
+                edge.faces = faces
+                edge_list.append(edge)
+                
+                for f in faces:
+                    face = face_list[f]
+                    face.edges.append(ei)
+                ei += 1
+        return edge_list
+    
+
+    def save_tetra(self, filet):
+
+        tetra_list = []
+        file = open(filet, "r")
+        next(file)
+
+        for line in file:
+            l = line.split()
+            if l[0] == '#':
+                continue
+            #print(l)
+            v1 = int(l[1])
+            v2 = int(l[2])
+            v3 = int(l[3])
+            v4 = int(l[4])
+            ti = int(l[0])
+            t = Tetrahedron(ti, v1,v2,v3,v4)
+            tetra_list.append(t)
+
+        return tetra_list
+    
+    def asign_faces_and_edges_to_tetras(self,tetra_list, face_list, edge_list):
+        for f in face_list:
+            for t in tetra_list:
+                if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
+                    t.faces.append(f.i)
+                    f.neighs.append(t.i)
+                    for e in f.edges:
+                        if e not in t.edges:
+                            t.edges.append(e)
+                        edge_list[e].tetrahedrons.append(t.i)
+
+
+        return tetra_list, face_list
+
+    def asign_neighs(self,tetra, face_list):
+        neighs = []
+        for face in tetra.faces:
+            if len(face_list[face].neighs) < 2 :#and (not tetra.is_boundary):
+                tetra.is_boundary = True
+                face_list[face].is_boundary = True
+                # tetra.edges+=face_list[face].edges
+                # tetra.edges = list(set(tetra.edges))
+
+            face_list[face].n1 = face_list[face].neighs[0]
+            if face_list[face].n1 !=tetra.i: neighs.append(face_list[face].n1)
+
+            if not face_list[face].is_boundary:
+                face_list[face].n2 = face_list[face].neighs[1]
+                if face_list[face].n2 !=tetra.i: neighs.append(face_list[face].n2)
+            else:
+                neighs.append(-1)
+
+        # set_version = set(neighs)
+        tetra.neighs = neighs
+
+
+        
+    def construct_tetrahedral_mesh(self, node_file, face_file, ele_file):
+        print("Reading vertex file")
+        node_list, edges_matrix = self.save_vertex(node_file) #self.read_node_file(node_file)
+        print("Reading face file")
+        face_list = self.save_faces(face_file,edges_matrix) #self.read_face_file(face_file)
+        print("Processing edges")
+        edge_list = self.save_edges(edges_matrix, face_list)#self.read_edge_file(edge_file)
+        print("Reading tetra file")
+        tetra_list = self.save_tetra(ele_file) # self.read_ele_file(ele_file)
+        
+
+        # Calcula los tetrahedros vecinos
+        # print(face_list)
+        print("Processesing faces with tetrahedorns")
+        tetra_list, face_list = self.asign_faces_and_edges_to_tetras(tetra_list,face_list, edge_list)
+        # for tetra in tetra_list:
+        #     for f in tetra.faces:
+        #         face = face_list[f]
+        #         neighs = [face.n1, face.n2]
+        #         curr_tetra = tetra.i
+        #         neigh_tetra = neighs[0] if neighs[0] != curr_tetra else neighs[1]
+        #         tetra.neighs.append(neigh_tetra)
+        
+        #Find the edges of each tetrahedron
+        # for tetra in tetra_list:
+        #     for f in tetra.faces:
+        #         face = face_list[f]
+        #         ## add edges to tetrahedron
+        #         tetra_edges_aux = []
+        #         for edge_index in face.edges:
+        #             tetra_edges_aux.append(edge_list[edge_index].i)
+        #         tetra.edges.extend(tetra_edges_aux)
+        #     tetra.edges = [*set(tetra.edges)]
+
+
+        # Calculate border tetrahedron adjacent to each edge
+#        for tetra in tetra_list:
+#            for edge in tetra.edges:
+#                if tetra.is_boundary:
+#                    edge_list[edge].first_tetra = tetra.i
+
+        # Calculate border tetrahedron adjacent to each edge
+        for face in face_list:
+            for edge in face.edges:
+                if face.is_boundary:
+                    n1 = face.n1
+                    n2 = face.n2
+                    if n1 != -1:
+                        edge_list[edge].first_tetra = n1
+                    else:
+                        edge_list[edge].first_tetra = n2
+
+        for tetra in range(len(tetra_list)):
+            self.asign_neighs(tetra_list[tetra],face_list)
+
+        # Calculate all the tetrahedrons adjacent to each edge in order
+        #This do it using brute force
+        #self.calculate_tetrahedrons_for_edge(edge_list, tetra_list)
+        #This do it using the first tetrahedron, if the edge is boundary, then the first tetrahedron MUST BE boundary.
+        # for edge in edge_list:
+        #     self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
+
+        # Imprime los tetrahedros
+        #for t in range(0, len(tetra_list)):
+        #    print("tetrahedron ", t, ":", tetra_list[t].v1, tetra_list[t].v2, tetra_list[t].v3, tetra_list[t].v4, tetra_list[t].faces, tetra_list[t].neighs, tetra_list[t].is_boundary, tetra_list[t].edges)
+
+        
+
+        return node_list, face_list, tetra_list, edge_list
+
+    # Circle around an edge e to find their adjacent tetrahedrons and faces and store them in order
+    # If the edge es boundary, then the first_tetrahedron MUST BE boundary.
+    # def tetrahedrons_adjcacents_to_edge(self, edge, tetra_list, face_list, edge_list):
+    #     tetra_origin = edge_list[edge].first_tetra
+    #     # Search face adjacent to tetra_origin that contains edge
+    #     f = []
+    #     for face in tetra_list[tetra_origin].faces:
+    #         if edge in face_list[face].edges:
+    #             f.append(face)
+    #     #t_next = tetra adjcaent to f_origin that is not tetra_origin and is not boundary
+    #     tetra_1 = face_list[f[0]].n1 if face_list[f[0]].n1 != tetra_origin else face_list[f[0]].n2
+    #     tetra_2 = face_list[f[1]].n1 if face_list[f[1]].n1 != tetra_origin else face_list[f[1]].n2
+    #     if tetra_1 == -1:
+    #         tetra_next = tetra_2
+    #         f_next = f[1]
+    #     else:
+    #         tetra_next = tetra_1
+    #         f_next = f[0]
+    #     faces = []
+    #     tetras = [tetra_origin]
+    #     #print("edge: ", edge, " border ", edge_list[edge].is_boundary ," tetra_origin: ", tetra_origin, " tetra_next: ", tetra_next, edge_list[edge].tetrahedrons)
+    #     while tetra_next != tetra_origin:
+    #         if tetra_next == -1:
+    #             break
+    #         tetras.append(tetra_next)
+    #         faces.append(f_next)    
+    #         #face that contains edge and is not f_origin
+    #         for face in tetra_list[tetra_next].faces:
+    #             if edge in face_list[face].edges and face != f_next:
+    #                 f_next = face
+    #                 break
+    #         tetra_next = face_list[f_next].n1 if face_list[f_next].n1 != tetra_next else face_list[f_next].n2
+    #     faces.append(f_next)
+    #     edge_list[edge].tetrahedrons = tetras
+    #     edge_list[edge].faces = faces
+
+
+    # Calculate a list of tetrahedrons adjacent to each edge
+    # only use this functions when you have edges adjacents to two tetrahedrons but no adjacent by any face
+    # def calculate_tetrahedrons_for_edge(self, edge_list, tetra_list):
+    #     for tetra in tetra_list:
+    #         for edge in tetra.edges:
+    #             edge_list[edge].tetrahedrons.append(tetra.i)
+    #             if tetra.is_boundary:
+    #                 edge_list[edge].first_tetra = tetra.i
+    #     #remove repeat tetrahedrons from edges
+    #     for edge in edge_list:
+    #         edge.tetrahedrons = [*set(edge.tetrahedrons)]    
+
+    def get_face(self, f):
+        return self.face_list[f]
+    
+    def get_edge(self, e):
+        return self.edge_list[e]
+
+    def get_tetrahedron(self,t):
+        return self.tetra_list[t]
+    
+    def get_vertex(self, v):
+        return self.node_list[v]
+
+    def get_info(self):
+        print("Tetrahedral mesh info:")
+        print("Number of nodes: ", len(self.node_list))
+        print("Number of faces: ", len(self.face_list))
+        print("Number of tetrahedrons: ", len(self.tetra_list))
+        print("Number of edges: ", len(self.edge_list))
+
+
+
+
+class FaceTetrahedronMesh:
+    def __init__(self, node_file, face_file, tetra_file):
+        self.node_list, self.face_list, self.tetra_list, self.edge_list = self.construct_tetrahedral_mesh(node_file, face_file, tetra_file)
+        self.n_tetrahedrons = len(self.tetra_list)
+        self.n_faces = len(self.face_list)
+        self.n_nodes = len(self.node_list)
+        self.n_edges = len(self.edge_list)
+    
+    def save_vertex(self,filev):
+        matrix = []
+        vertex_list = []
+        file = open(filev, "r")
+        next(file)
+        for line in file:
+            l = line.split()
+            if l[0] == '#':
+                continue
+            v = Vertex(int(l[0]), float(l[1]), float(l[2]), float(l[3]))
+            vertex_list.append(v)
+            matrix.append([[],[]]) # in c++ is not necessary
+        file.close()
+        return vertex_list,matrix
+
+    # def read_node_file(self, filename):
+    #     print("reading node file: "+ filename)
+    #     f = open(filename, "r")
+    #     node_list = []
+    #     next(f)
+    #     for line in f:
+    #         line = line.split()
+    #         #v1, v2, v3, boundary_marker
+    #         if line[0] != '#':
+    #             node_temp = Vertex(int(line[0]), float(line[1]), float(line[2]), float(line[3]))
+    #             node_list.append(node_temp)
+    #     f.close()
+    #     return node_list
+    
+    def save_faces(self, filef, edges_matrix):
+    
+        face_list = []
+        file = open(filef, "r")
+        next(file)
+        for line in file:
+            l = line.split()
+            if l[0] == '#':
+                continue
+            #print(l)
+            v1 = int(l[1])
+            v2 = int(l[2])
+            v3 = int(l[3])
+            fi = int(l[0])
+            f = Face(fi, v1,v2,v3)
+            face_list.append(f)
+
+            savedE1 = False
+            savedE2 = False
+            savedE3 = False
+
+
+            if v2 not in edges_matrix[v1][0] and v1 not in edges_matrix[v2][0]:
+                edges_matrix[v1][0].append(v2)
+                edges_matrix[v1][1].append([fi])
+                savedE1 = True
+
+            if v3 not in edges_matrix[v2][0] and v2 not in edges_matrix[v3][0]:
+                edges_matrix[v2][0].append(v3)
+                edges_matrix[v2][1].append([fi])
+                savedE2 = True
+            if v1 not in edges_matrix[v3][0] and v3 not in edges_matrix[v1][0]:
+                edges_matrix[v3][0].append(v1)
+                edges_matrix[v3][1].append([fi])
+                savedE3 = True
+
+            #if it isn't saved it already exist (only two options)
+            if not savedE1:
+                if v2 in edges_matrix[v1][0]:
+                    index = edges_matrix[v1][0].index(v2)
+                    edges_matrix[v1][1][index].append(fi)
+                else:
+                    index = edges_matrix[v2][0].index(v1)
+                    edges_matrix[v2][1][index].append(fi)
+
+            if not savedE2:
+                if v3 in edges_matrix[v2][0]:
+                    index = edges_matrix[v2][0].index(v3)
+                    edges_matrix[v2][1][index].append(fi)
+                else:
+                    index = edges_matrix[v3][0].index(v2)
+                    edges_matrix[v3][1][index].append(fi)
+            if not savedE3:
+                if v1 in edges_matrix[v3][0]:
+                    index = edges_matrix[v3][0].index(v1)
+                    edges_matrix[v3][1][index].append(fi)
+                else:
+                    index = edges_matrix[v1][0].index(v3)
+                    edges_matrix[v1][1][index].append(fi)
+        file.close()
+        return face_list
+
     # def read_face_file(self, filename):
     #     print("reading face file: "+ filename)
     #     f = open(filename, "r")
@@ -201,6 +521,7 @@ class TetrahedronMesh:
                 edge = Edge(ei,vi,vf)
                 edge.faces = faces
                 edge_list.append(edge)
+                # print(vi,',',vf)
                 
                 for f in faces:
                     face = face_list[f]
@@ -208,43 +529,45 @@ class TetrahedronMesh:
                 ei += 1
         return edge_list
     
-    def look_for_faces(self, v1, v2, v3, v4, tetra, face_list):
-        faces = []
-        edges = []
-        c = 0
-        for face in face_list:
-                if c >= 4:
-                    break
-                if (v1 in face.vertex) and (v2 in face.vertex) and (v3 in face.vertex):
-                    faces.append(face.i)
-                    face.neighs.append(tetra.i)
-                    edges += face.edges
-                    c += 1
-                if (v2 in face.vertex) and (v3 in face.vertex) and (v4 in face.vertex):
-                    faces.append(face.i)
-                    face.neighs.append(tetra.i)
-                    edges += face.edges
-                    c += 1
-                if (v3 in face.vertex) and (v4 in face.vertex) and (v1 in face.vertex):
-                    faces.append(face.i)
-                    face.neighs.append(tetra.i)
-                    edges += face.edges
-                    c += 1
-                if (v4 in face.vertex) and (v2 in face.vertex) and (v1 in face.vertex):
-                    faces.append(face.i)
-                    face.neighs.append(tetra.i)
-                    edges += face.edges
-                    c += 1
-        tetra.edge = list(set(edges))
-        return faces
+    # def look_for_faces(self, v1, v2, v3, v4, tetra, face_list):
+    #     faces = []
+    #     edges = []
+    #     c = 0
+    #     for face in face_list:
+    #             if c >= 4:
+    #                 break
+    #             if (v1 in face.vertex) and (v2 in face.vertex) and (v3 in face.vertex):
+    #                 faces.append(face.i)
+    #                 face.neighs.append(tetra.i)
+    #                 edges += face.edges
+    #                 c += 1
+    #             if (v2 in face.vertex) and (v3 in face.vertex) and (v4 in face.vertex):
+    #                 faces.append(face.i)
+    #                 face.neighs.append(tetra.i)
+    #                 edges += face.edges
+    #                 c += 1
+    #             if (v3 in face.vertex) and (v4 in face.vertex) and (v1 in face.vertex):
+    #                 faces.append(face.i)
+    #                 face.neighs.append(tetra.i)
+    #                 edges += face.edges
+    #                 c += 1
+    #             if (v4 in face.vertex) and (v2 in face.vertex) and (v1 in face.vertex):
+    #                 faces.append(face.i)
+    #                 face.neighs.append(tetra.i)
+    #                 edges += face.edges
+    #                 c += 1
+    #     tetra.edge = list(set(edges))
+    #     return faces
 
-    def save_tetra(self, file,face_list):
+    def save_tetra(self, filet):
 
         tetra_list = []
+        file = open(filet, "r")
+        next(file)
 
         for line in file:
             l = line.split()
-            if l[0] == '#' or len(l) < 5:
+            if l[0] == '#':
                 continue
             #print(l)
             v1 = int(l[1])
@@ -255,31 +578,57 @@ class TetrahedronMesh:
             t = Tetrahedron(ti, v1,v2,v3,v4)
             tetra_list.append(t)
 
-            t.faces = look_for_faces(v1,v2,v3,v4,t,face_list)
-
+        file.close()
         return tetra_list
     
     def asign_faces_to_tetras(self,tetra_list, face_list):
         for f in face_list:
             for t in tetra_list:
-                if len(t.faces) ==4:
-                    continue
                 if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
                     t.faces.append(f.i)
                     f.neighs.append(t.i)
-                if len(f.neighs) == 2:
-                    break
-        for tetra in tetra_list:
-            for face in tetra.faces:
-                if len(face_list[face].neighs) < 2 and (not tetra.is_boundary):
-                    tetra.is_boundary = True
-                    face_list[face].n1 = face_list[face].neighs[0]
-                    face_list[face].n2 = face_list[face].neighs[1]
-                    tetra.edges+=face_list[face].edges
-                    tetra.edges = list(set(tetra.edges))
+        # for tetra in tetra_list:
+        #     neighs = []
+        #     for face in tetra.faces:
+        #         if len(face_list[face].neighs) < 2 :#and (not tetra.is_boundary):
+        #             tetra.is_boundary = True
+        #             face_list[face].is_boundary = True
+        #             # tetra.edges+=face_list[face].edges
+        #             # tetra.edges = list(set(tetra.edges))
+
+        #         face_list[face].n1 = face_list[face].neighs[0]
+        #         if face_list[face].n1 !=tetra.i: neighs.append(face_list[face].n1)
+
+        #         if not tetra.is_boundary:
+        #             face_list[face].n2 = face_list[face].neighs[1]
+        #             if face_list[face].n2 !=tetra.i: neighs.append(face_list[face].n2)
+
+        #     # set_version = set(neighs)
+        #     tetra.neighs = neighs
+
         return tetra_list, face_list
 
-    
+    def asign_neighs(self,tetra, face_list):
+        neighs = []
+        for face in tetra.faces:
+            if len(face_list[face].neighs) < 2 :#and (not tetra.is_boundary):
+                tetra.is_boundary = True
+                face_list[face].is_boundary = True
+                # tetra.edges+=face_list[face].edges
+                # tetra.edges = list(set(tetra.edges))
+
+            face_list[face].n1 = face_list[face].neighs[0]
+            if face_list[face].n1 !=tetra.i: neighs.append(face_list[face].n1)
+
+            if not face_list[face].is_boundary:
+                face_list[face].n2 = face_list[face].neighs[1]
+                if face_list[face].n2 !=tetra.i: neighs.append(face_list[face].n2)
+            else:
+                neighs.append(-1)
+
+        # set_version = set(neighs)
+        tetra.neighs = neighs
+
 
     # def read_edge_file(self, filename):
     #     print("reading edge file: "+ filename)
@@ -301,10 +650,14 @@ class TetrahedronMesh:
 
         
     def construct_tetrahedral_mesh(self, node_file, face_file, ele_file):
+        print("Reading vertex file")
         node_list, edges_matrix = self.save_vertex(node_file) #self.read_node_file(node_file)
+        print("Reading face file")
         face_list = self.save_faces(face_file,edges_matrix) #self.read_face_file(face_file)
+        print("Processing edges")
         edge_list = self.save_edges(edges_matrix, face_list)#self.read_edge_file(edge_file)
-        tetra_list = self.save_tetra(ele_file,face_list) # self.read_ele_file(ele_file)
+        print("Reading tetra file")
+        tetra_list = self.save_tetra(ele_file) # self.read_ele_file(ele_file)
         
 
         # asign to each face their edges
@@ -340,6 +693,8 @@ class TetrahedronMesh:
             #     tetra_list[neigh1].is_boundary = True
 
         # Calcula los tetrahedros vecinos
+        # print(face_list)
+        print("Processesing faces with tetrahedorns")
         tetra_list, face_list = self.asign_faces_to_tetras(tetra_list,face_list)
         # for tetra in tetra_list:
         #     for f in tetra.faces:
@@ -371,19 +726,22 @@ class TetrahedronMesh:
         for face in face_list:
             for edge in face.edges:
                 if face.is_boundary:
-                    n1 = face.neighs[0]
-                    n2 = face.neighs[1]
+                    n1 = face.n1
+                    n2 = face.n2
                     if n1 != -1:
                         edge_list[edge].first_tetra = n1
                     else:
                         edge_list[edge].first_tetra = n2
 
+        for tetra in range(len(tetra_list)):
+            self.asign_neighs(tetra_list[tetra],face_list)
+
         # Calculate all the tetrahedrons adjacent to each edge in order
         #This do it using brute force
         #self.calculate_tetrahedrons_for_edge(edge_list, tetra_list)
         #This do it using the first tetrahedron, if the edge is boundary, then the first tetrahedron MUST BE boundary.
-        for edge in edge_list:
-            self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
+        # for edge in edge_list:
+        #     self.tetrahedrons_adjcacents_to_edge(edge.i, tetra_list, face_list, edge_list)
 
         # Imprime los tetrahedros
         #for t in range(0, len(tetra_list)):
@@ -395,52 +753,52 @@ class TetrahedronMesh:
 
     # Circle around an edge e to find their adjacent tetrahedrons and faces and store them in order
     # If the edge es boundary, then the first_tetrahedron MUST BE boundary.
-    def tetrahedrons_adjcacents_to_edge(self, edge, tetra_list, face_list, edge_list):
-        tetra_origin = edge_list[edge].first_tetra
-        # Search face adjacent to tetra_origin that contains edge
-        f = []
-        for face in tetra_list[tetra_origin].faces:
-            if edge in face_list[face].edges:
-                f.append(face)
-        #t_next = tetra adjcaent to f_origin that is not tetra_origin and is not boundary
-        tetra_1 = face_list[f[0]].n1 if face_list[f[0]].n1 != tetra_origin else face_list[f[0]].n2
-        tetra_2 = face_list[f[1]].n1 if face_list[f[1]].n1 != tetra_origin else face_list[f[1]].n2
-        if tetra_1 == -1:
-            tetra_next = tetra_2
-            f_next = f[1]
-        else:
-            tetra_next = tetra_1
-            f_next = f[0]
-        faces = []
-        tetras = [tetra_origin]
-        #print("edge: ", edge, " border ", edge_list[edge].is_boundary ," tetra_origin: ", tetra_origin, " tetra_next: ", tetra_next, edge_list[edge].tetrahedrons)
-        while tetra_next != tetra_origin:
-            if tetra_next == -1:
-                break
-            tetras.append(tetra_next)
-            faces.append(f_next)    
-            #face that contains edge and is not f_origin
-            for face in tetra_list[tetra_next].faces:
-                if edge in face_list[face].edges and face != f_next:
-                    f_next = face
-                    break
-            tetra_next = face_list[f_next].n1 if face_list[f_next].n1 != tetra_next else face_list[f_next].n2
-        faces.append(f_next)
-        edge_list[edge].tetrahedrons = tetras
-        edge_list[edge].faces = faces
+    # def tetrahedrons_adjcacents_to_edge(self, edge, tetra_list, face_list, edge_list):
+    #     tetra_origin = edge_list[edge].first_tetra
+    #     # Search face adjacent to tetra_origin that contains edge
+    #     f = []
+    #     for face in tetra_list[tetra_origin].faces:
+    #         if edge in face_list[face].edges:
+    #             f.append(face)
+    #     #t_next = tetra adjcaent to f_origin that is not tetra_origin and is not boundary
+    #     tetra_1 = face_list[f[0]].n1 if face_list[f[0]].n1 != tetra_origin else face_list[f[0]].n2
+    #     tetra_2 = face_list[f[1]].n1 if face_list[f[1]].n1 != tetra_origin else face_list[f[1]].n2
+    #     if tetra_1 == -1:
+    #         tetra_next = tetra_2
+    #         f_next = f[1]
+    #     else:
+    #         tetra_next = tetra_1
+    #         f_next = f[0]
+    #     faces = []
+    #     tetras = [tetra_origin]
+    #     #print("edge: ", edge, " border ", edge_list[edge].is_boundary ," tetra_origin: ", tetra_origin, " tetra_next: ", tetra_next, edge_list[edge].tetrahedrons)
+    #     while tetra_next != tetra_origin:
+    #         if tetra_next == -1:
+    #             break
+    #         tetras.append(tetra_next)
+    #         faces.append(f_next)    
+    #         #face that contains edge and is not f_origin
+    #         for face in tetra_list[tetra_next].faces:
+    #             if edge in face_list[face].edges and face != f_next:
+    #                 f_next = face
+    #                 break
+    #         tetra_next = face_list[f_next].n1 if face_list[f_next].n1 != tetra_next else face_list[f_next].n2
+    #     faces.append(f_next)
+    #     edge_list[edge].tetrahedrons = tetras
+    #     edge_list[edge].faces = faces
 
 
     # Calculate a list of tetrahedrons adjacent to each edge
     # only use this functions when you have edges adjacents to two tetrahedrons but no adjacent by any face
-    def calculate_tetrahedrons_for_edge(self, edge_list, tetra_list):
-        for tetra in tetra_list:
-            for edge in tetra.edges:
-                edge_list[edge].tetrahedrons.append(tetra.i)
-                if tetra.is_boundary:
-                    edge_list[edge].first_tetra = tetra.i
-        #remove repeat tetrahedrons from edges
-        for edge in edge_list:
-            edge.tetrahedrons = [*set(edge.tetrahedrons)]    
+    # def calculate_tetrahedrons_for_edge(self, edge_list, tetra_list):
+    #     for tetra in tetra_list:
+    #         for edge in tetra.edges:
+    #             edge_list[edge].tetrahedrons.append(tetra.i)
+    #             if tetra.is_boundary:
+    #                 edge_list[edge].first_tetra = tetra.i
+    #     #remove repeat tetrahedrons from edges
+    #     for edge in edge_list:
+    #         edge.tetrahedrons = [*set(edge.tetrahedrons)]    
 
     def get_face(self, f):
         return self.face_list[f]
@@ -461,11 +819,7 @@ class TetrahedronMesh:
         print("Number of tetrahedrons: ", len(self.tetra_list))
         print("Number of edges: ", len(self.edge_list))
 
-    def saveLog(self, filename, info_list):
-      f = open(filename,'w')
-      for i in info_list:
-            f.write(str(i))
-
+        
 
 
 def save_vertex(file):
@@ -634,138 +988,7 @@ def save_faces_at(edges_matrix, face_matrix):
         #         edges_matrix[v1][1][index].append(fi)
     return face_list
 
-def save_faces(file, edges_matrix):
-    
-    face_list = []
-    for line in file:
-        l = line.split()
-        if l[0] == '#' or len(l) < 4:
-            continue
-        #print(l)
-        v1 = int(l[1])
-        v2 = int(l[2])
-        v3 = int(l[3])
-        fi = int(l[0])
-        f = Face(fi, v1,v2,v3)
-        face_list.append(f)
 
-        savedE1 = False
-        savedE2 = False
-        savedE3 = False
-
-
-        if v2 not in edges_matrix[v1][0] and v1 not in edges_matrix[v2][0]:
-            edges_matrix[v1][0].append(v2)
-            edges_matrix[v1][1].append([fi])
-            savedE1 = True
-
-        if v3 not in edges_matrix[v2][0] and v2 not in edges_matrix[v3][0]:
-            edges_matrix[v2][0].append(v3)
-            edges_matrix[v2][1].append([fi])
-            savedE2 = True
-        if v1 not in edges_matrix[v3][0] and v3 not in edges_matrix[v1][0]:
-            edges_matrix[v3][0].append(v1)
-            edges_matrix[v3][1].append([fi])
-            savedE3 = True
-
-        #if it isn't saved it already exist (only two options)
-        if not savedE1:
-            if v2 in edges_matrix[v1][0]:
-                index = edges_matrix[v1][0].index(v2)
-                edges_matrix[v1][1][index].append(fi)
-            else:
-                index = edges_matrix[v2][0].index(v1)
-                edges_matrix[v2][1][index].append(fi)
-
-        if not savedE2:
-            if v3 in edges_matrix[v2][0]:
-                index = edges_matrix[v2][0].index(v3)
-                edges_matrix[v2][1][index].append(fi)
-            else:
-                index = edges_matrix[v3][0].index(v2)
-                edges_matrix[v3][1][index].append(fi)
-        if not savedE3:
-            if v1 in edges_matrix[v3][0]:
-                index = edges_matrix[v3][0].index(v1)
-                edges_matrix[v3][1][index].append(fi)
-            else:
-                index = edges_matrix[v1][0].index(v3)
-                edges_matrix[v1][1][index].append(fi)
-    return face_list
-
-def save_tetra(file,face_list):
-
-    tetra_list = []
-
-    for line in file:
-        l = line.split()
-        if l[0] == '#' or len(l) < 5:
-            continue
-        #print(l)
-        v1 = int(l[1])
-        v2 = int(l[2])
-        v3 = int(l[3])
-        v4 = int(l[4])
-        ti = int(l[0])
-        t = Tetrahedron(ti, v1,v2,v3,v4)
-        tetra_list.append(t)
-
-        # t.faces = look_for_faces(v1,v2,v3,v4,t,face_list)
-        # for f in t.faces:
-        #     if len(f.neighs)<2 and (not t.is_boundary):
-        #         t.is_boundary = True
-        #         break
-
-    return tetra_list
-
-def look_for_faces(v1, v2, v3, v4, tetra, face_list):
-      faces = []
-      edges = []
-      c = 0
-      for face in face_list:
-            if c >= 4:
-                  break
-            if (v1 in face.vertex) and (v2 in face.vertex) and (v3 in face.vertex):
-                  faces.append(face.i)
-                  face.neighs.append(tetra.i)
-                  edges += face.edges
-                  c += 1
-            if (v2 in face.vertex) and (v3 in face.vertex) and (v4 in face.vertex):
-                  faces.append(face.i)
-                  face.neighs.append(tetra.i)
-                  edges += face.edges
-                  c += 1
-            if (v3 in face.vertex) and (v4 in face.vertex) and (v1 in face.vertex):
-                  faces.append(face.i)
-                  face.neighs.append(tetra.i)
-                  edges += face.edges
-                  c += 1
-            if (v4 in face.vertex) and (v2 in face.vertex) and (v1 in face.vertex):
-                  faces.append(face.i)
-                  face.neighs.append(tetra.i)
-                  edges += face.edges
-                  c += 1
-            
-      tetra.edge = list(set(edges))
-      return faces
-#edges are not necesary for polylla face
-def asign_faces_to_tetras(tetra_list, face_list):
-    for f in face_list:
-        for t in tetra_list:
-            if len(t.faces) ==4:
-                continue
-            if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
-                t.faces.append(f.i)
-                f.neighs.append(t.i)
-            if len(f.neighs) == 2:
-                break
-    for tetra in tetra_list:
-        for face in tetra.faces:
-            if len(face_list[face].neighs) < 2 and (not tetra.is_boundary):
-                tetra.is_boundary = True
-                tetra.edges+=face_list[face].edges
-                tetra.edges = list(set(tetra.edges))
-    return tetra_list, face_list
 
 
 def saveLog(filename, info_list):
@@ -784,6 +1007,16 @@ def saveLog(filename, info_list):
 # faces = filename + ".face"
 # tetras = filename + ".ele"
 # t0= time.time()
+# mesh = TetrahedronMesh(vertexs, faces, tetras)
+# print("vecinos")
+# for tetra in range(len(mesh.tetra_list)):
+#     mesh.asign_neighs(mesh.tetra_list[tetra],mesh.face_list)
+# saveLog("face_log.txt",mesh.face_list)
+# saveLog("tetra_log.txt",mesh.tetra_list)
+# tf = time.time()
+# print("Processing the data:", (tf-t0), "segundos")
+# print(mesh.tetra_list)
+# mesh.get_info()
 # print("Reading vertex file")
 # filev = open(vertexs, 'r')
 
@@ -805,4 +1038,4 @@ def saveLog(filename, info_list):
 # tf = time.time()
 # print("Processing the data:", (tf-t0), "segundos")
 # saveLog("logTetra.txt", tetra_list)
-# saveLog("logFace.txt", face_list)
+# saveLog("logFace.txt", face_list)+")\n"self.n1

@@ -1,4 +1,4 @@
-from pruebaTetra import FaceTetrahedronMesh, EdgeTetrahedronMesh, saveLog
+from newMesh import FaceTetrahedronMesh, EdgeTetrahedronMesh, saveLog
 from mesh import TetrahedronMesh
 from PolyllaEdge import PolyllaEdge
 from PolyllaFace import PolyllaFace
@@ -27,8 +27,8 @@ tf1 = time.time()
 # polyllaEdge_mesh = PolyllaEdge(mesh)
 
 
-saveLog('tetra_prueba_log.txt',mesh_f.tetra_list)
-saveLog('tetra_mesh_log.txt',mesh.tetra_list)
+saveLog('logs/tetra_prueba_log.txt',mesh_f.tetra_list)
+saveLog('logs/tetra_mesh_log.txt',mesh.tetra_list)
 
 
 print('Tiempo Sergio`s version:',tf3-tf2,'segs')
@@ -49,9 +49,9 @@ polyllaFace_mesh_original.printOFF_each_poly(filename_face)
 filename_prueba = "logs/face_prueba"+str(numVertices)
 polyllaFace_mesh_prueba.printOFF_each_poly(filename_prueba)
 
-saveLog('logFaceOrg.txt',mesh.face_list)
-saveLog('logTetraOrg.txt',mesh.tetra_list)
-saveLog('logFacePrueba.txt',mesh_f.face_list)
-saveLog('logTetraPrueba.txt',mesh_f.tetra_list)
-saveLog('logEdgeOrg.txt',mesh.edge_list)
-saveLog('logEdgePrueba.txt',mesh_f.edge_list)
+saveLog('logs/logFaceOrg.txt',mesh.face_list)
+saveLog('logs/logTetraOrg.txt',mesh.tetra_list)
+saveLog('logs/logFacePrueba.txt',mesh_f.face_list)
+saveLog('logs/logTetraPrueba.txt',mesh_f.tetra_list)
+saveLog('logs/logEdgeOrg.txt',mesh.edge_list)
+saveLog('logs/logEdgePrueba.txt',mesh_f.edge_list)
