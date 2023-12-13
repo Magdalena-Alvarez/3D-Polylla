@@ -45,6 +45,7 @@ class Edge:
         self.v2 = end_point2
         self.vertex = [end_point1,end_point2]
         self.faces = [] # boundary case 2, internal case at least 3
+        self.length = -1
 
     def __repr__(self):
         return str(self)

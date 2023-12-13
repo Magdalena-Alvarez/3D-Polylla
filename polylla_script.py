@@ -15,12 +15,12 @@ edge_file = filename + ".edge"
 
 tf2 = time.time()
 mesh = TetrahedronMesh(node_file, face_file, ele_file,edge_file)
-polyllaFace_mesh_original = PolyllaFace(mesh)
+polyllaFace_mesh_original = PolyllaFace(mesh,'tra')
 tf3 = time.time()
 
 t0 = time.time()
 mesh_f = FaceTetrahedronMesh(node_file, face_file, ele_file)
-polyllaFace_mesh_prueba = PolyllaFace(mesh_f)
+polyllaFace_mesh_prueba = PolyllaFace(mesh_f,'ar')
 tf1 = time.time()
 
 
@@ -42,12 +42,12 @@ polyllaFace_mesh_original.get_info()
 print('\n Stats polylla Prueba:')
 polyllaFace_mesh_prueba.get_info()
 
-filename_face = "logs/face_orig"+str(numVertices)
-filename_face_poly = "logs/face_orig"+str(numVertices)
-polyllaFace_mesh_original.printOFF_each_poly(filename_face)
+filename_face = "logs/face_orig"+str(numVertices)+".off"
+filename_face_poly = "logs/face_orig"+str(numVertices)+".off"
+polyllaFace_mesh_original.printOFF_polyhedralmesh(filename_face)
 # polyllaFace_mesh_original.printOFF_polyhedralmesh(filename_face_poly)
-filename_prueba = "logs/face_prueba"+str(numVertices)
-polyllaFace_mesh_prueba.printOFF_each_poly(filename_prueba)
+filename_prueba = "logs/face_prueba"+str(numVertices)+".off"
+polyllaFace_mesh_prueba.printOFF_polyhedralmesh(filename_prueba)
 
 saveLog('logs/logFaceOrg.txt',mesh.face_list)
 saveLog('logs/logTetraOrg.txt',mesh.tetra_list)
