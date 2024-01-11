@@ -1,5 +1,6 @@
 ##Notice: Polyhedrons are representd a list of faces
 
+import statistics
 from mesh import TetrahedronMesh, Polyhedron
 import numpy as np
 import sys
@@ -7,19 +8,25 @@ from collections import Counter
 from math import floor, sqrt
 import random
 import matplotlib.pyplot as plt
+from scipy.spatial import ConvexHull
 import numpy as np
+from utils import ccw_check
 
 
 
 class PolyllaFace:
-    def __init__(self, mesh, flag = 'inr'):
+    def __init__(self, mesh, flag = 'r'):
         self.mesh = mesh
         self.n_barrier_faces = 0
         self.polyhedra_with_barriers = 0
         self.FLAGS = {
-            'inr' : self.calculate_max_incircle_faces,
-            'tra': self.calculate_max_triangle_aspect_faces,
-            'ar' : self.calculate_max_aspect_ratio_faces
+            'r' : self.calculate_max_incircle_faces,
+            'R' : self.calculate_max_circumcircle_faces,
+            # 'tra' : self.calculate_max_triangle_aspect_faces,
+            # 'are1' : self.calculate_max_aspect_ratio_e1_faces,
+            # 'are2' : self.calculate_max_aspect_ratio_e2_faces,
+            # 'are3' : self.calculate_max_aspect_ratio_e3_faces,
+            'a' : self.calculate_max_area_faces
         }
         #self.longest_faces = self.calculate_max_area_faces()
         self.longest_faces = self.FLAGS[flag]()
@@ -108,14 +115,14 @@ class PolyllaFace:
 
             L_max = max(length_edge_a,length_edge_b,length_edge_c)
 
-            q = L_max*(length_edge_a + length_edge_b + length_edge_c) / (4 * sqrt(3) * area)
+            q = L_max*(length_edge_a + length_edge_b + length_edge_c) / (4 * sqrt(3) * area) # type: ignore
             aspects.append(q)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
             a2 = aspects[self.mesh.tetra_list[i].faces[2]]
             a3 = aspects[self.mesh.tetra_list[i].faces[3]]
-            maxFace = min(a0, a1, a2, a3)
+            maxFace = max(a0, a1, a2, a3)
             if maxFace == a0:
                 longest_faces.append(0)
             elif maxFace == a1:
@@ -125,14 +132,13 @@ class PolyllaFace:
             elif maxFace == a3:
                 longest_faces.append(3)
             else:
-                print(maxFace, abs(a0-1),abs(a1-1),abs(a2-1),abs(a3-1))
                 print("Error en la función calculate_max_triangle_aspect_faces")
             # index_max_face = longest_faces[len(longest_faces)-1]
             # coordsmaxface = [self.mesh.face_list[longest_faces[len(longest_faces)-1]]]
         # print(longest_faces)
         return longest_faces
     
-    def calculate_max_aspect_ratio_faces(self):
+    def calculate_max_aspect_ratio_e1_faces(self):
         self.calculate_edges_length()
         aspects = []
         longest_faces = []
@@ -148,7 +154,7 @@ class PolyllaFace:
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
             a2 = aspects[self.mesh.tetra_list[i].faces[2]]
             a3 = aspects[self.mesh.tetra_list[i].faces[3]]
-            maxFace = min(a0, a1, a2, a3)
+            maxFace = max(a0, a1, a2, a3)
             if maxFace == a0:
                 longest_faces.append(0)
             elif maxFace == a1:
@@ -158,15 +164,104 @@ class PolyllaFace:
             elif maxFace == a3:
                 longest_faces.append(3)
             else:
-                print(maxFace, abs(a0-1),abs(a1-1),abs(a2-1),abs(a3-1))
-                print("Error en la función calculate_max_triangle_aspect_faces")
-            # index_max_face = longest_faces[len(longest_faces)-1]
-            # coordsmaxface = [self.mesh.face_list[longest_faces[len(longest_faces)-1]]]
-        # print(longest_faces)
+                print("Error en la función calculate_max_aspect_ratio_e1_faces")
+
         return longest_faces
         
+    def calculate_max_aspect_ratio_e2_faces(self):
+        self.calculate_edges_length()
+        aspects = []
+        longest_faces = []
+        for i in range(0, self.mesh.n_faces):
+            length_edge_a = self.mesh.edge_list[self.mesh.face_list[i].edges[0]].length
+            length_edge_b = self.mesh.edge_list[self.mesh.face_list[i].edges[1]].length
+            length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
+            semiperimeter = (length_edge_a + length_edge_b + length_edge_c) / 2
+            L_max = max(length_edge_a,length_edge_b,length_edge_c)
 
+            radious = (semiperimeter - length_edge_a) * (semiperimeter - length_edge_b) * (semiperimeter - length_edge_c) / semiperimeter
+            ar = radious / L_max
+            
+            aspects.append(ar)
+        for i in range(0, self.mesh.n_tetrahedrons):
+            a0 = aspects[self.mesh.tetra_list[i].faces[0]]
+            a1 = aspects[self.mesh.tetra_list[i].faces[1]]
+            a2 = aspects[self.mesh.tetra_list[i].faces[2]]
+            a3 = aspects[self.mesh.tetra_list[i].faces[3]]
+            maxFace = max(a0, a1, a2, a3)
+            if maxFace == a0:
+                longest_faces.append(0)
+            elif maxFace == a1:
+                longest_faces.append(1)
+            elif maxFace == a2:
+                longest_faces.append(2)
+            elif maxFace == a3:
+                longest_faces.append(3)
+            else:
+                print("Error en la función calculate_max__aspect_ratio_e2_faces")
+        return longest_faces
+    
+    def calculate_max_aspect_ratio_e3_faces(self):
+        self.calculate_edges_length()
+        aspects = []
+        longest_faces = []
+        for i in range(0, self.mesh.n_faces):
+            length_edge_a = self.mesh.edge_list[self.mesh.face_list[i].edges[0]].length
+            length_edge_b = self.mesh.edge_list[self.mesh.face_list[i].edges[1]].length
+            length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
+            L_max = max(length_edge_a,length_edge_b,length_edge_c)
 
+            Radious = (length_edge_a * length_edge_b * length_edge_c) / (4 * self.area(self.mesh.face_list[i])) # type: ignore
+            ar =  L_max / Radious
+            
+            aspects.append(ar)
+        for i in range(0, self.mesh.n_tetrahedrons):
+            a0 = aspects[self.mesh.tetra_list[i].faces[0]]
+            a1 = aspects[self.mesh.tetra_list[i].faces[1]]
+            a2 = aspects[self.mesh.tetra_list[i].faces[2]]
+            a3 = aspects[self.mesh.tetra_list[i].faces[3]]
+            maxFace = max(a0, a1, a2, a3)
+            if maxFace == a0:
+                longest_faces.append(0)
+            elif maxFace == a1:
+                longest_faces.append(1)
+            elif maxFace == a2:
+                longest_faces.append(2)
+            elif maxFace == a3:
+                longest_faces.append(3)
+            else:
+                print("Error en la función calculate_max__aspect_ratio_e3_faces")
+        return longest_faces
+    
+    def calculate_max_circumcircle_faces(self):
+        self.calculate_edges_length()
+        aspects = []
+        longest_faces = []
+        for i in range(0, self.mesh.n_faces):
+            length_edge_a = self.mesh.edge_list[self.mesh.face_list[i].edges[0]].length
+            length_edge_b = self.mesh.edge_list[self.mesh.face_list[i].edges[1]].length
+            length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
+
+            Radious = (length_edge_a * length_edge_b * length_edge_c) / (4 * self.area(self.mesh.face_list[i])) # type: ignore
+            
+            aspects.append(Radious)
+        for i in range(0, self.mesh.n_tetrahedrons):
+            a0 = aspects[self.mesh.tetra_list[i].faces[0]]
+            a1 = aspects[self.mesh.tetra_list[i].faces[1]]
+            a2 = aspects[self.mesh.tetra_list[i].faces[2]]
+            a3 = aspects[self.mesh.tetra_list[i].faces[3]]
+            maxFace = max(a0, a1, a2, a3)
+            if maxFace == a0:
+                longest_faces.append(0)
+            elif maxFace == a1:
+                longest_faces.append(1)
+            elif maxFace == a2:
+                longest_faces.append(2)
+            elif maxFace == a3:
+                longest_faces.append(3)
+            else:
+                print("Error en la función calculate_max__aspect_ratio_e3_faces")
+        return longest_faces
 
 
 #############################################################################################   
@@ -490,7 +585,7 @@ class PolyllaFace:
                     v3 = self.mesh.face_list[f.i].v3
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
-    def printOFF_polyhedralmesh(self, filename):
+    def printOFF_polyhedralmesh_colors(self, filename):
         print("writing OFF file: "+ filename)
         list_face = []
         colors = []
@@ -511,6 +606,34 @@ class PolyllaFace:
                 v3 = self.mesh.face_list[f].v3
                 fh.write("3 %d %d %d %d %d %d\n" % (v1, v2, v3, colors[f][0],colors[f][1],colors[f][2]))
 
+    def printOFF_polyhedralmesh(self, filename):
+        print("writing OFF file: "+ filename)
+        list_face = []
+        for polyhedron in self.polyhedral_mesh:
+            for face in polyhedron.faces:
+                t = self.mesh.face_list[face].neighs[0] if (self.mesh.face_list[face].neighs[0] in polyhedron.tetras) else self.mesh.face_list[face].neighs[1]
+                if not ccw_check(self.mesh.face_list[face], self.mesh.tetra_list[t],self.mesh.node_list):
+                    print('check face', face)
+                    v2 = self.mesh.face_list[face].v2
+                    v3 = self.mesh.face_list[face].v3
+                    self.mesh.face_list[face].v2 = v3
+                    self.mesh.face_list[face].v3 = v2
+                list_face.append(face)
+        list_face =  list(dict.fromkeys(list_face))
+        with open(filename, 'w') as fh:
+            fh.write("OFF\n")
+            fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
+            for v in self.mesh.node_list:
+                fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+            for f in list_face:
+
+                v1 = self.mesh.face_list[f].v1
+                v2 = self.mesh.face_list[f].v2
+                v3 = self.mesh.face_list[f].v3
+
+                fh.write("3 %d %d %d\n" % (v1, v2, v3))
+
+
     def printOFF_each_poly(self,filename):
         print("writing OFF files: "+ filename)
         i = 0
@@ -529,9 +652,47 @@ class PolyllaFace:
                     v = self.mesh.node_list[node]
                     fh.write("%f %f %f\n" % (v.x, v.y, v.z))
                 for f in list_face:
-                    v1 = nodes.index(self.mesh.face_list[f].v1)
-                    v2 = nodes.index(self.mesh.face_list[f].v2)
-                    v3 = nodes.index(self.mesh.face_list[f].v3)
+                    t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                    if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
+                        v1 = nodes.index(self.mesh.face_list[f].v1)
+                        v2 = nodes.index(self.mesh.face_list[f].v2)
+                        v3 = nodes.index(self.mesh.face_list[f].v3)
+                    else:
+                        v1 = nodes.index(self.mesh.face_list[f].v1)
+                        v2 = nodes.index(self.mesh.face_list[f].v3)
+                        v3 = nodes.index(self.mesh.face_list[f].v2)
+                    fh.write("3 %d %d %d\n" % (v1, v2, v3))
+            i+=1
+
+    def writePolygonFile(self,filename):
+        print("writing OFF files: "+ filename)
+        i = 0
+        with open(filename+'.txt', 'w') as fh:
+            polys = self.polyhedral_mesh
+            p = len(polys)
+            fh.write(str(p)+'\n')
+            for polyhedron in polys:
+                list_face = polyhedron.faces
+                nodes = []
+                for tetra in polyhedron.tetras:
+                    vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
+                    for v in vertex:
+                        if v not in nodes :
+                            nodes.append(v) 
+                fh.write("%d %d\n" % (len(nodes), len(list_face)))
+                for node in nodes:
+                    v = self.mesh.node_list[node]
+                    fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+                for f in list_face:
+                    t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                    if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
+                        v1 = nodes.index(self.mesh.face_list[f].v1)
+                        v2 = nodes.index(self.mesh.face_list[f].v2)
+                        v3 = nodes.index(self.mesh.face_list[f].v3)
+                    else:
+                        v1 = nodes.index(self.mesh.face_list[f].v1)
+                        v2 = nodes.index(self.mesh.face_list[f].v3)
+                        v3 = nodes.index(self.mesh.face_list[f].v2)
                     fh.write("3 %d %d %d\n" % (v1, v2, v3))
             i+=1
 
@@ -545,6 +706,81 @@ class PolyllaFace:
             if len(polyhedron.tetras) == 1:
                 count += 1
         print("Number of polyhedrons that are tetrahedrons: " + str(count))
+
+#############################################################################################
+#POLYHEDRA METRICS
+#############################################################################################
+
+    def edge_ratio(self):
+        polyhedrons = self.polyhedral_mesh
+        ratios = []
+        for poly in polyhedrons:
+            faces = poly.faces
+            face_mins = []
+            face_maxs = []
+            for face in faces:
+                edges = []
+                for edge in self.mesh.face_list[face].edges:
+                    edges.append(self.mesh.edge_list[edge].length)
+                edge_min = min(edges)
+                edge_max = max(edges)
+                face_mins.append(edge_min)
+                face_maxs.append(edge_max)
+            poly_min = min(face_mins)
+            poly_max = max(face_maxs)
+            ratios.append(poly_min/poly_max)
+        mean_ratio = statistics.mean(ratios)
+        min_ratio = min(ratios)
+        max_ratio = max(ratios)
+
+        return [mean_ratio, min_ratio, max_ratio]
+    
+    def tetra_per_poly(self):
+        polyhedrons = self.polyhedral_mesh
+        tetras = []
+        for poly in polyhedrons:
+            tetra_num = len(poly.tetras)
+            tetras.append(tetra_num)
+        
+        mean_tetra_num = statistics.mean(tetras)
+        min_tetra_num = min(tetras)
+        max_tetra_num = max(tetras)
+
+        return [mean_tetra_num, min_tetra_num, max_tetra_num]
+    
+    def faces_per_poly(self):
+        polyhedrons = self.polyhedral_mesh
+        faces_num = []
+        for poly in polyhedrons:
+            face_num = len(poly.faces)
+            faces_num.append(face_num)
+        
+        mean_face_num = statistics.mean(faces_num)
+        min_face_num = min(faces_num)
+        max_face_num = max(faces_num)
+
+        return [mean_face_num, min_face_num, max_face_num]
+    
+    def polyhedron_area(self):
+        area = []
+        convex_hull = []
+        if self.mesh.face_list[0].area < 0:
+            self.calculate_area_triangle_3d()
+        for polyhedron in self.polyhedral_mesh:
+            suma_area = 0
+            nodes = []
+            for face in polyhedron.faces:
+                suma_area+= self.mesh.face_list[face].area
+            area.append(suma_area)
+            for tetra in polyhedron.tetras:
+                    vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
+                    for v in vertex:
+                        if v not in nodes :
+                            nodes.append(np.array(v)) 
+            nodes = np.array(nodes)
+            cvhull = ConvexHull(nodes)
+            print(cvhull)
+        return
 
 if __name__ == "__main__":
     folder = "data\\"

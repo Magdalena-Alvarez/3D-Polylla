@@ -1,5 +1,3 @@
-import sys
-import time
 
 class Polyhedron:
     def __init__(self):
@@ -32,6 +30,7 @@ class Face:
         self.neighs = []
         self.is_boundary = False
         self.edges = [] #tetra case 3, poly case at least 3
+        self.area = -1
 
     def __repr__(self):
         return str(self)
@@ -204,6 +203,8 @@ class EdgeTetrahedronMesh:
     def asign_faces_and_edges_to_tetras(self,tetra_list, face_list, edge_list):
         for f in face_list:
             for t in tetra_list:
+                if len(f.neighs) == 2:
+                    break
                 if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
                     t.faces.append(f.i)
                     f.neighs.append(t.i)
@@ -347,15 +348,7 @@ class EdgeTetrahedronMesh:
 
     # Calculate a list of tetrahedrons adjacent to each edge
     # only use this functions when you have edges adjacents to two tetrahedrons but no adjacent by any face
-    # def calculate_tetrahedrons_for_edge(self, edge_list, tetra_list):
-    #     for tetra in tetra_list:
-    #         for edge in tetra.edges:
-    #             edge_list[edge].tetrahedrons.append(tetra.i)
-    #             if tetra.is_boundary:
-    #                 edge_list[edge].first_tetra = tetra.i
-    #     #remove repeat tetrahedrons from edges
-    #     for edge in edge_list:
-    #         edge.tetrahedrons = [*set(edge.tetrahedrons)]    
+    # def calculate_tetrahedrons_for_edge(self, ea = self.node_list[v1]ahedrons)]    
 
     def get_face(self, f):
         return self.face_list[f]
@@ -430,7 +423,7 @@ class FaceTetrahedronMesh:
             v2 = int(l[2])
             v3 = int(l[3])
             fi = int(l[0])
-            f = Face(fi, v1,v2,v3)
+            f = Face(fi, v1,v3,v2)
             face_list.append(f)
 
             savedE1 = False
@@ -585,27 +578,12 @@ class FaceTetrahedronMesh:
     def asign_faces_to_tetras(self,tetra_list, face_list):
         for f in face_list:
             for t in tetra_list:
+                if len(f.neighs) == 2:
+                    break
                 if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
                     t.faces.append(f.i)
                     f.neighs.append(t.i)
-        # for tetra in tetra_list:
-        #     neighs = []
-        #     for face in tetra.faces:
-        #         if len(face_list[face].neighs) < 2 :#and (not tetra.is_boundary):
-        #             tetra.is_boundary = True
-        #             face_list[face].is_boundary = True
-        #             # tetra.edges+=face_list[face].edges
-        #             # tetra.edges = list(set(tetra.edges))
 
-        #         face_list[face].n1 = face_list[face].neighs[0]
-        #         if face_list[face].n1 !=tetra.i: neighs.append(face_list[face].n1)
-
-        #         if not tetra.is_boundary:
-        #             face_list[face].n2 = face_list[face].neighs[1]
-        #             if face_list[face].n2 !=tetra.i: neighs.append(face_list[face].n2)
-
-        #     # set_version = set(neighs)
-        #     tetra.neighs = neighs
 
         return tetra_list, face_list
 
