@@ -1,4 +1,4 @@
-
+import numpy as np
 class Polyhedron:
     def __init__(self):
         self.tetras = []
@@ -409,11 +409,13 @@ class FaceTetrahedronMesh:
     #     f.close()
     #     return node_list
     
-    def save_faces(self, filef, edges_matrix):
+    def save_faces(self, filef, edges_matrix,n_node):
     
         face_list = []
         file = open(filef, "r")
         next(file)
+        face_matrix = np.empty((n_node,n_node),object)
+
         for line in file:
             l = line.split()
             if l[0] == '#':
@@ -423,9 +425,15 @@ class FaceTetrahedronMesh:
             v2 = int(l[2])
             v3 = int(l[3])
             fi = int(l[0])
-            f = Face(fi, v1,v3,v2)
+            f = Face(fi, v1,v2,v3)
             face_list.append(f)
-
+            v = [v1,v2,v3]
+            v.sort()
+            if face_matrix[v[0]][v[1]]:
+                face_matrix[v[0]][v[1]][v[2]] = fi
+            else:
+                face_matrix[v[0]][v[1]]={v[2]:fi}
+            # print(v[0],v[1],face_matrix[v[0]][v[1]])
             savedE1 = False
             savedE2 = False
             savedE3 = False
@@ -469,7 +477,7 @@ class FaceTetrahedronMesh:
                     index = edges_matrix[v1][0].index(v3)
                     edges_matrix[v1][1][index].append(fi)
         file.close()
-        return face_list
+        return face_list, face_matrix
 
     # def read_face_file(self, filename):
     #     print("reading face file: "+ filename)
@@ -553,7 +561,7 @@ class FaceTetrahedronMesh:
     #     tetra.edge = list(set(edges))
     #     return faces
 
-    def save_tetra(self, filet):
+    def save_tetra(self, filet, face_matrix,face_list):
 
         tetra_list = []
         file = open(filet, "r")
@@ -570,19 +578,48 @@ class FaceTetrahedronMesh:
             v4 = int(l[4])
             ti = int(l[0])
             t = Tetrahedron(ti, v1,v2,v3,v4)
+            self.asign_faces(t,face_matrix,face_list)
             tetra_list.append(t)
 
         file.close()
         return tetra_list
     
-    def asign_faces_to_tetras(self,tetra_list, face_list):
-        for f in face_list:
-            for t in tetra_list:
-                if len(f.neighs) == 2:
-                    break
-                if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
-                    t.faces.append(f.i)
-                    f.neighs.append(t.i)
+    def asign_faces(self,tetra, face_matrix, face_list):
+        
+        # print('tetra ',tetra.i)
+        v = [tetra.v1,tetra.v2,tetra.v3]
+        v.sort()
+        f1 = face_matrix[v[0]][v[1]][v[2]]
+        face_list[f1].neighs.append(tetra.i)
+        v = [tetra.v2,tetra.v3,tetra.v4]
+        v.sort()
+        f2 = face_matrix[v[0]][v[1]][v[2]]
+        face_list[f2].neighs.append(tetra.i)
+        v = [tetra.v3,tetra.v4,tetra.v1]
+        v.sort()
+        f3 = face_matrix[v[0]][v[1]][v[2]]
+        face_list[f3].neighs.append(tetra.i)
+        v = [tetra.v4,tetra.v1,tetra.v2]
+        v.sort()
+        f4 = face_matrix[v[0]][v[1]][v[2]]
+        face_list[f4].neighs.append(tetra.i)
+        faces = [f1,f2,f3,f4]
+        tetra.faces = faces
+        # print(faces)
+        return
+
+    # def asign_tetras_to_faces(self,tetra_list, face_list):
+
+    #     for f in face_list:
+    #         for t in tetra_list:
+    #             if len(f.neighs) == 2:
+    #                 break
+    #             if set(t.vertex).intersection(set(f.vertex)) == set(f.vertex):
+    #                 t.faces.append(f.i)
+    #                 f.neighs.append(t.i)
+    #                 if len(t.faces) == 4:
+    #                     print('tetra ', t.i)
+    #                     print(t.faces)
 
 
         return tetra_list, face_list
@@ -632,11 +669,11 @@ class FaceTetrahedronMesh:
         print("Reading vertex file")
         node_list, edges_matrix = self.save_vertex(node_file) #self.read_node_file(node_file)
         print("Reading face file")
-        face_list = self.save_faces(face_file,edges_matrix) #self.read_face_file(face_file)
+        face_list, face_matrix = self.save_faces(face_file,edges_matrix, len(node_list)) #self.read_face_file(face_file)
         print("Processing edges")
         edge_list = self.save_edges(edges_matrix, face_list)#self.read_edge_file(edge_file)
         print("Reading tetra file")
-        tetra_list = self.save_tetra(ele_file) # self.read_ele_file(ele_file)
+        tetra_list = self.save_tetra(ele_file,face_matrix,face_list) # self.read_ele_file(ele_file)
         
 
         # asign to each face their edges
@@ -674,7 +711,7 @@ class FaceTetrahedronMesh:
         # Calcula los tetrahedros vecinos
         # print(face_list)
         print("Processesing faces with tetrahedorns")
-        tetra_list, face_list = self.asign_faces_to_tetras(tetra_list,face_list)
+        # tetra_list, face_list = self.asign_tetras_to_faces(tetra_list,face_list)
         # for tetra in tetra_list:
         #     for f in tetra.faces:
         #         face = face_list[f]

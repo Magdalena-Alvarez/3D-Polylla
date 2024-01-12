@@ -714,21 +714,26 @@ class PolyllaFace:
     def edge_ratio(self):
         polyhedrons = self.polyhedral_mesh
         ratios = []
+        if self.mesh.edge_list[0].length < 0:
+            self.calculate_edges_length()
         for poly in polyhedrons:
             faces = poly.faces
-            face_mins = []
-            face_maxs = []
+            # face_mins = []
+            # face_maxs = []
+            edges = []
             for face in faces:
-                edges = []
+                # edges = []
                 for edge in self.mesh.face_list[face].edges:
                     edges.append(self.mesh.edge_list[edge].length)
-                edge_min = min(edges)
-                edge_max = max(edges)
-                face_mins.append(edge_min)
-                face_maxs.append(edge_max)
-            poly_min = min(face_mins)
-            poly_max = max(face_maxs)
-            ratios.append(poly_min/poly_max)
+                # edge_min = min(edges)
+                # edge_max = max(edges)
+                # face_mins.append(edge_min)
+                # face_maxs.append(edge_max)
+            poly_min = min(edges)
+            poly_max = max(edges)
+            ratio = poly_min/poly_max
+            ratios.append(ratio)
+            # print(poly_min,poly_max)
         mean_ratio = statistics.mean(ratios)
         min_ratio = min(ratios)
         max_ratio = max(ratios)
