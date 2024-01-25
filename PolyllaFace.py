@@ -50,6 +50,11 @@ class PolyllaFace:
                 ##generate a list with all the  barrier-face tips 
                 barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
                 ## Sent the polyhedron to repair
+                # print('pre repair',polyhedron)
+                # poly = Polyhedron()
+                # poly.tetras = polyhedron_tetras.copy()
+                # poly.faces = polyhedron.copy()
+                # self.polyhedral_mesh.append(poly)
                 self.repairPhase(polyhedron, barrierFacesTips) #--> al comentarla quedan iguales
             else:
                 poly = Polyhedron()
@@ -327,6 +332,7 @@ class PolyllaFace:
             av2 = np.array([v2.x, v2.y, v2.z])
             av3 = np.array([v3.x, v3.y, v3.z])
             area = np.linalg.norm(np.cross(av2-av1, av3-av1))
+            # print(face.i, area)
             face.area = area
 
     # Esto puede ser un escrito en dos lineas
@@ -335,6 +341,11 @@ class PolyllaFace:
         longest = []
         for tetra in self.mesh.tetra_list:
             # Calcula el area de cada cara
+            # if self.mesh.face_list[tetra.faces[0]].area < 0 : self.mesh.face_list[tetra.faces[0]].area = self.area(self.mesh.face_list[tetra.faces[0]])
+            # if self.mesh.face_list[tetra.faces[1]].area < 0 : self.mesh.face_list[tetra.faces[1]].area = self.area(self.mesh.face_list[tetra.faces[1]])
+            # if self.mesh.face_list[tetra.faces[2]].area < 0 : self.mesh.face_list[tetra.faces[2]].area = self.area(self.mesh.face_list[tetra.faces[2]])
+            # if self.mesh.face_list[tetra.faces[3]].area < 0 : self.mesh.face_list[tetra.faces[3]].area = self.area(self.mesh.face_list[tetra.faces[3]])
+            
             a0 = self.mesh.face_list[tetra.faces[0]].area
             a1 = self.mesh.face_list[tetra.faces[1]].area
             a2 = self.mesh.face_list[tetra.faces[2]].area
@@ -496,6 +507,7 @@ class PolyllaFace:
 
 
     def repairPhase(self, polyhedron, barrierFaceTips):
+        # print('Repair Phase')
         tetra_list = []
         barrierFace = -1
         # print('repair phase:')
@@ -661,7 +673,7 @@ class PolyllaFace:
                         v1 = nodes.index(self.mesh.face_list[f].v1)
                         v2 = nodes.index(self.mesh.face_list[f].v3)
                         v3 = nodes.index(self.mesh.face_list[f].v2)
-                    fh.write("3 %d %d %d\n" % (v1, v2, v3))
+                    fh.write("3 %d %d %d # %d\n" % (v1, v2, v3,f))
             i+=1
 
     def writePolygonFile(self,filename):
@@ -671,6 +683,7 @@ class PolyllaFace:
             polys = self.polyhedral_mesh
             p = len(polys)
             fh.write(str(p)+'\n')
+            c = 0
             for polyhedron in polys:
                 list_face = polyhedron.faces
                 nodes = []
@@ -684,6 +697,7 @@ class PolyllaFace:
                     v = self.mesh.node_list[node]
                     fh.write("%f %f %f\n" % (v.x, v.y, v.z))
                 for f in list_face:
+                    # print(list_face)
                     t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
                     if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
                         v1 = nodes.index(self.mesh.face_list[f].v1)
@@ -693,7 +707,8 @@ class PolyllaFace:
                         v1 = nodes.index(self.mesh.face_list[f].v1)
                         v2 = nodes.index(self.mesh.face_list[f].v3)
                         v3 = nodes.index(self.mesh.face_list[f].v2)
-                    fh.write("3 %d %d %d\n" % (v1, v2, v3))
+                    fh.write("3 %d %d %d # %d %d\n" % (v1, v2, v3,f,c))
+                c+=1
             i+=1
 
     def get_info(self):
@@ -767,25 +782,95 @@ class PolyllaFace:
         return [mean_face_num, min_face_num, max_face_num]
     
     def polyhedron_area(self):
-        area = []
-        convex_hull = []
+        ratios = []
         if self.mesh.face_list[0].area < 0:
             self.calculate_area_triangle_3d()
         for polyhedron in self.polyhedral_mesh:
             suma_area = 0
             nodes = []
             for face in polyhedron.faces:
-                suma_area+= self.mesh.face_list[face].area
-            area.append(suma_area)
+                # print(self.mesh.face_list[face].i, self.mesh.face_list[face].area)
+                suma_area+= self.mesh.face_list[face].area*0.5
             for tetra in polyhedron.tetras:
                     vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
                     for v in vertex:
                         if v not in nodes :
-                            nodes.append(np.array(v)) 
+                            nodes.append(v)
+            for i in range(len(nodes)):
+                v = np.array([self.mesh.node_list[nodes[i]].x,self.mesh.node_list[nodes[i]].y,self.mesh.node_list[nodes[i]].z])
+                nodes[i] = v
             nodes = np.array(nodes)
             cvhull = ConvexHull(nodes)
-            print(cvhull)
-        return
+            cvHull_area = cvhull.area
+            ratio = suma_area / cvHull_area
+            ratios.append(ratio)
+        mean_ratio_area = statistics.mean(ratios)
+        min_ratio_area = min(ratios)
+        max_ratio_area = max(ratios)
+
+        return [mean_ratio_area, min_ratio_area, max_ratio_area]
+    
+    def tetra_volume(self, tetra):
+        t = self.mesh.tetra_list[tetra]
+        v1 = self.mesh.node_list[t.v1]
+        v2 = self.mesh.node_list[t.v2]
+        v3 = self.mesh.node_list[t.v3]
+        v4 = self.mesh.node_list[t.v4]
+        A = np.array([v2.x - v1.x,v2.y - v1.y,v2.z - v1.z])
+        B = np.array([v3.x - v1.x,v3.y - v1.y,v3.z - v1.z])
+        C = np.array([v4.x - v1.x,v4.y - v1.y,v4.z - v1.z])
+
+        # vec3d L0 = p1 - p0;
+        # vec3d L2 = p0 - p2;
+        # vec3d L3 = p3 - p0;
+
+        # return (L2.cross(L0)).dot(L3) / 6.0;
+        return round(np.dot(A,np.cross(B,C))/6.0,7)
+        
+
+    def polyhedron_volume(self):
+        volumes = []
+        for poly in self.polyhedral_mesh:
+            volume = 0
+            for tetra in poly.tetras:
+                volume += self.tetra_volume(tetra)
+            volumes.append(volume)
+        mean_volume = statistics.mean(volumes)
+        min_volume = min(volumes)
+        max_volume = max(volumes)
+
+        return [mean_volume, min_volume, max_volume]
+    
+    def volume_ratio(self, kernelfile):
+        kfile = open(kernelfile+'.txt','r')
+        filelines = kfile.readlines()
+        polys_w_kernel = int(filelines.pop().split(' ')[0])
+        kernel_volumes = list(map(float, filelines))
+        # for line in filelines:
+        #     kernel_volumes.append(float(line))
+        ratios = []
+        count = 0
+        for i in range(len(self.polyhedral_mesh)):
+            poly = self.polyhedral_mesh[i]
+            volume = 0
+            for tetra in poly.tetras:
+                volume += self.tetra_volume(tetra)
+            if kernel_volumes[i] > 0:
+                ratio = kernel_volumes[i] / round(volume,7)
+                ratios.append(ratio)
+                # print(volume,kernel_volumes[i],ratio)
+        mean_volume = statistics.mean(ratios)
+        min_volume = min(ratios)
+        max_volume = max(ratios)
+        
+        kernel_rate = (polys_w_kernel/len(self.polyhedral_mesh))*100
+        
+        return [mean_volume, min_volume, max_volume, kernel_rate,count]
+        
+
+        
+
+
 
 if __name__ == "__main__":
     folder = "data\\"
