@@ -1,7 +1,7 @@
 ##Notice: Polyhedrons are representd a list of faces
 
 import statistics
-from mesh import TetrahedronMesh, Polyhedron
+from newMesh import FaceTetrahedronMesh, Polyhedron
 import numpy as np
 import sys
 from collections import Counter
@@ -454,24 +454,7 @@ class PolyllaFace:
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n', self.mesh.face_list[face_id])
                     next_tetra = tetra_neighs[i]
-                    v1_i = self.mesh.face_list[face_id].v1
-                    v2_i = self.mesh.face_list[face_id].v2
-                    v3_i = self.mesh.face_list[face_id].v3
-                    v1 = self.mesh.node_list[v1_i]
-                    v2 = self.mesh.node_list[v2_i]
-                    v3 = self.mesh.node_list[v3_i]
-                    # face_coords = [[v1.x,v1.y,v1.z],[v2.x,v2.y,v2.z],[v3.x,v3.y,v3.z]]
-                    # x =np.array([v1.x,v2.x,v3.y])
-                    # y = np.array([v1.y,v2.y,v3.y])
-                    # z = np.array([v1.z,v2.z,v3.z])
-                    # fig = plt.figure()
-                    # ax = fig.add_subplot(projection='3d')
-                    # ax = plt.figure().add_subplot(projection='3d')
 
-                    # ax.plot_trisurf(x, y, z, linewidth=0.2, antialiased=True)
-
-                    # plt.show()
-                    # not_fronteir_index += 1
                     if(self.visited_tetra[next_tetra] == False):
                         self.DepthFirstSearch(polyhedron, polyhedron_tetras, next_tetra)
         
@@ -553,11 +536,22 @@ class PolyllaFace:
                 new_polyhedron = []
                 new_polyhedron_tetras = []
                 self.DepthFirstSearch_in_repair(new_polyhedron, new_polyhedron_tetras, tetra_curr)
-                poly = Polyhedron()
-                poly.faces = new_polyhedron.copy()
-                poly.tetras = new_polyhedron_tetras.copy()
-                poly.was_repaired = True
-                self.polyhedral_mesh.append(poly)
+                barrierFaces_new = self.count_barrierFaces(new_polyhedron)
+                if barrierFaces_new > 0:
+                    # print('re-repair')
+                    for tetra in new_polyhedron_tetras:
+                        self.visited_tetra[tetra] = False
+                    ##generate a list with all the  barrier-face tips 
+                    barrierFacesTips_new = self.detectBarrierFaceTips(new_polyhedron)       
+                    ## Sent the polyhedron to repair
+                    self.repairPhase(new_polyhedron, barrierFacesTips_new)
+                else:
+                    poly = Polyhedron()
+                    poly.faces = new_polyhedron.copy()
+                    # print(poly.faces)
+                    poly.tetras = new_polyhedron_tetras.copy()
+                    poly.was_repaired = True
+                    self.polyhedral_mesh.append(poly)
 
     # return list of faces 
     def DepthFirstSearch_in_repair(self, polyhedron, polyhedron_tetras, tetra):
@@ -625,7 +619,7 @@ class PolyllaFace:
             for face in polyhedron.faces:
                 t = self.mesh.face_list[face].neighs[0] if (self.mesh.face_list[face].neighs[0] in polyhedron.tetras) else self.mesh.face_list[face].neighs[1]
                 if not ccw_check(self.mesh.face_list[face], self.mesh.tetra_list[t],self.mesh.node_list):
-                    print('check face', face)
+                    # print('check face', face)
                     v2 = self.mesh.face_list[face].v2
                     v3 = self.mesh.face_list[face].v3
                     self.mesh.face_list[face].v2 = v3
@@ -647,7 +641,7 @@ class PolyllaFace:
 
 
     def printOFF_each_poly(self,filename):
-        print("writing OFF files: "+ filename)
+        # print("writing OFF files: "+ filename)
         i = 0
         for polyhedron in self.polyhedral_mesh:
             list_face = polyhedron.faces
@@ -677,14 +671,19 @@ class PolyllaFace:
             i+=1
 
     def writePolygonFile(self,filename):
-        print("writing OFF files: "+ filename)
-        i = 0
+        # print("writing OFF files: "+ filename)
         with open(filename+'.txt', 'w') as fh:
             polys = self.polyhedral_mesh
-            p = len(polys)
-            fh.write(str(p)+'\n')
+            
             c = 0
-            for polyhedron in polys:
+            not_convex_poly = []
+            for poly in polys:
+                if not poly.is_convex:
+                    not_convex_poly.append(poly)
+            p = len(not_convex_poly)
+            fh.write(str(p)+'\n')
+            for polyhedron in not_convex_poly:
+                # print(str(polyhedron))
                 list_face = polyhedron.faces
                 nodes = []
                 for tetra in polyhedron.tetras:
@@ -692,10 +691,12 @@ class PolyllaFace:
                     for v in vertex:
                         if v not in nodes :
                             nodes.append(v) 
+                # if not polyhedron.is_convex:
                 fh.write("%d %d\n" % (len(nodes), len(list_face)))
                 for node in nodes:
                     v = self.mesh.node_list[node]
                     fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+                
                 for f in list_face:
                     # print(list_face)
                     t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
@@ -707,9 +708,11 @@ class PolyllaFace:
                         v1 = nodes.index(self.mesh.face_list[f].v1)
                         v2 = nodes.index(self.mesh.face_list[f].v3)
                         v3 = nodes.index(self.mesh.face_list[f].v2)
-                    fh.write("3 %d %d %d # %d %d\n" % (v1, v2, v3,f,c))
+                    fh.write("3 %d %d %d \n" % (v1, v2, v3))# %d %d
+                # else:
+                #     print('si convex')
                 c+=1
-            i+=1
+
 
     def get_info(self):
         print("PolyllaFace info:")
@@ -780,6 +783,26 @@ class PolyllaFace:
         max_face_num = max(faces_num)
 
         return [mean_face_num, min_face_num, max_face_num]
+    def convex_polyhedrons(self):
+        conv_polys = 0
+        for polyhedron in self.polyhedral_mesh:
+            nodes = []
+            for tetra in polyhedron.tetras:
+                    vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
+                    for v in vertex:
+                        if v not in nodes :
+                            nodes.append(v)
+            for i in range(len(nodes)):
+                v = np.array([self.mesh.node_list[nodes[i]].x,self.mesh.node_list[nodes[i]].y,self.mesh.node_list[nodes[i]].z])
+                nodes[i] = v
+            # nodes = np.array(nodes)
+            cvhull = ConvexHull(nodes)
+            # cvHull_area = cvhull.area
+            if set(cvhull.vertices) == set(range(len(nodes))):
+                conv_polys+=1
+                polyhedron.is_convex = True
+
+        return conv_polys
     
     def polyhedron_area(self):
         ratios = []
@@ -825,7 +848,7 @@ class PolyllaFace:
         # vec3d L3 = p3 - p0;
 
         # return (L2.cross(L0)).dot(L3) / 6.0;
-        return round(np.dot(A,np.cross(B,C))/6.0,7)
+        return np.dot(A,np.cross(B,C))/6.0
         
 
     def polyhedron_volume(self):
@@ -849,23 +872,32 @@ class PolyllaFace:
         # for line in filelines:
         #     kernel_volumes.append(float(line))
         ratios = []
-        count = 0
+        convex_poly = []
+        # for poly in self.polyhedral_mesh:
+        #     if poly.is_convex:
+        #         convex_poly.append(poly)
+        not_convexs = 0
         for i in range(len(self.polyhedral_mesh)):
             poly = self.polyhedral_mesh[i]
             volume = 0
             for tetra in poly.tetras:
                 volume += self.tetra_volume(tetra)
-            if kernel_volumes[i] > 0:
-                ratio = kernel_volumes[i] / round(volume,7)
+            if not poly.is_convex:
+                if kernel_volumes[not_convexs] > 0:
+                    ratio = kernel_volumes[not_convexs] / volume
+                    ratios.append(ratio)
+                not_convexs+=1
+            else:
+                ratio = 1
                 ratios.append(ratio)
                 # print(volume,kernel_volumes[i],ratio)
         mean_volume = statistics.mean(ratios)
         min_volume = min(ratios)
         max_volume = max(ratios)
+        convex_num = len(self.polyhedral_mesh) - not_convexs
+        kernel_rate = ((polys_w_kernel+convex_num)/len(self.polyhedral_mesh))*100
         
-        kernel_rate = (polys_w_kernel/len(self.polyhedral_mesh))*100
-        
-        return [mean_volume, min_volume, max_volume, kernel_rate,count]
+        return [mean_volume, min_volume, max_volume, kernel_rate,]
         
 
         
@@ -883,7 +915,7 @@ if __name__ == "__main__":
     face_file = filename + ".face"
     edge_file = filename + ".edge"
     print("reading files" + node_file + edge_file + face_file + edge_file)
-    mesh = TetrahedronMesh(node_file, face_file, ele_file, edge_file)
+    mesh = FaceTetrahedronMesh(node_file, face_file, ele_file)
     polylla_mesh = PolyllaFace(mesh)
 
     
