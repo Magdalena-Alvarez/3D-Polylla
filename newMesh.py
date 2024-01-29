@@ -36,6 +36,13 @@ class Polyhedron:
         self.tetras = []
         self.faces = []
         self.was_repaired = False
+        self.is_convex = False
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return "(Polyhedron " + ": Tetra: " + str(self.tetras) + ", Is convex: " + str(self.is_convex)  + "\n"
+
 
 class Vertex:
     def __init__(self, i, x, y, z):
@@ -488,45 +495,69 @@ class FaceTetrahedronMesh:
             savedE1 = False
             savedE2 = False
             savedE3 = False
-
+            
+            v = [v1,v2]
             v.sort()
-            if v2 not in edges_matrix[v1][0] and v1 not in edges_matrix[v2][0]:
-                edges_matrix[v1][0].append(v2)
-                edges_matrix[v1][1].append([fi])
+            if v[1] not in edges_matrix[v[0]][0]:# and v1 not in edges_matrix[v2][0]:
+                edges_matrix[v[0]][0].append(v[1])
+                edges_matrix[v[0]][1].append([fi])
                 savedE1 = True
+            else:
+                index = edges_matrix[v[0]][0].index(v[1])
+                edges_matrix[v[0]][1][index].append(fi)
 
-            if v3 not in edges_matrix[v2][0] and v2 not in edges_matrix[v3][0]:
-                edges_matrix[v2][0].append(v3)
-                edges_matrix[v2][1].append([fi])
-                savedE2 = True
-            if v1 not in edges_matrix[v3][0] and v3 not in edges_matrix[v1][0]:
-                edges_matrix[v3][0].append(v1)
-                edges_matrix[v3][1].append([fi])
-                savedE3 = True
+            v = [v2,v3]
+            v.sort()
+            if v[1] not in edges_matrix[v[0]][0]:# and v1 not in edges_matrix[v2][0]:
+                edges_matrix[v[0]][0].append(v[1])
+                edges_matrix[v[0]][1].append([fi])
+                savedE1 = True
+            else:
+                index = edges_matrix[v[0]][0].index(v[1])
+                edges_matrix[v[0]][1][index].append(fi)
 
-            #if it isn't saved it already exist (only two options)
-            if not savedE1:
-                if v2 in edges_matrix[v1][0]:
-                    index = edges_matrix[v1][0].index(v2)
-                    edges_matrix[v1][1][index].append(fi)
-                else:
-                    index = edges_matrix[v2][0].index(v1)
-                    edges_matrix[v2][1][index].append(fi)
+            v = [v3,v1]
+            v.sort()
+            if v[1] not in edges_matrix[v[0]][0]:# and v1 not in edges_matrix[v2][0]:
+                edges_matrix[v[0]][0].append(v[1])
+                edges_matrix[v[0]][1].append([fi])
+                savedE1 = True
+            else:
+                index = edges_matrix[v[0]][0].index(v[1])
+                edges_matrix[v[0]][1][index].append(fi)
 
-            if not savedE2:
-                if v3 in edges_matrix[v2][0]:
-                    index = edges_matrix[v2][0].index(v3)
-                    edges_matrix[v2][1][index].append(fi)
-                else:
-                    index = edges_matrix[v3][0].index(v2)
-                    edges_matrix[v3][1][index].append(fi)
-            if not savedE3:
-                if v1 in edges_matrix[v3][0]:
-                    index = edges_matrix[v3][0].index(v1)
-                    edges_matrix[v3][1][index].append(fi)
-                else:
-                    index = edges_matrix[v1][0].index(v3)
-                    edges_matrix[v1][1][index].append(fi)
+            # if v3 not in edges_matrix[v2][0] and v2 not in edges_matrix[v3][0]:
+            #     edges_matrix[v2][0].append(v3)
+            #     edges_matrix[v2][1].append([fi])
+            #     savedE2 = True
+            # if v1 not in edges_matrix[v3][0] and v3 not in edges_matrix[v1][0]:
+            #     edges_matrix[v3][0].append(v1)
+            #     edges_matrix[v3][1].append([fi])
+            #     savedE3 = True
+
+            # #if it isn't saved it already exist (only two options)
+            # if not savedE1:
+            #     if v2 in edges_matrix[v1][0]:
+            #         index = edges_matrix[v1][0].index(v2)
+            #         edges_matrix[v1][1][index].append(fi)
+            #     else:
+            #         index = edges_matrix[v2][0].index(v1)
+            #         edges_matrix[v2][1][index].append(fi)
+
+            # if not savedE2:
+            #     if v3 in edges_matrix[v2][0]:
+            #         index = edges_matrix[v2][0].index(v3)
+            #         edges_matrix[v2][1][index].append(fi)
+            #     else:
+            #         index = edges_matrix[v3][0].index(v2)
+            #         edges_matrix[v3][1][index].append(fi)
+            # if not savedE3:
+            #     if v1 in edges_matrix[v3][0]:
+            #         index = edges_matrix[v3][0].index(v1)
+            #         edges_matrix[v3][1][index].append(fi)
+            #     else:
+            #         index = edges_matrix[v1][0].index(v3)
+            #         edges_matrix[v1][1][index].append(fi)
         # print(face_matrix,'\n',len(face_matrix))
         file.close()
         return face_list, face_matrix
