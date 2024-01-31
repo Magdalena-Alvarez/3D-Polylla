@@ -4,11 +4,17 @@
 
 using namespace cinolib;
 
+void save_stats(std::string filename){
+    std::ofstream myfile;
+    myfile.open (filename);
+    myfile << "Writing this to a file.\n";
+    myfile.close();
+}
 
 std::vector<std::pair<std::vector<vec3d>, std::vector<std::vector<uint>>>> readFile(std::string filename){
     
     std::ifstream inputFile(filename);
-
+    std::cout<<filename<<'\n';
     // Check if the file is open
     if (!inputFile.is_open()) {
         std::cerr << "Error opening the file: " << filename << std::endl;
@@ -20,9 +26,11 @@ std::vector<std::pair<std::vector<vec3d>, std::vector<std::vector<uint>>>> readF
     std::string line;
     std::string cantidad_polys;
     std::getline(inputFile, cantidad_polys);
+    // std::cout<<cantidad_polys<<'\n';
     int poly_num = std::stoi(cantidad_polys);
     std::cout <<poly_num<<" polygons\n";
     for (int i = 0; i < poly_num; i++){
+      
       std::vector<vec3d> vertex_list;
       std::vector<std::vector<uint>>  face_list; 
         std::getline(inputFile, line);
@@ -31,7 +39,9 @@ std::vector<std::pair<std::vector<vec3d>, std::vector<std::vector<uint>>>> readF
         std::string faces;
         std::getline(info,nodes,' ');
         std::getline(info,faces,' ');
+        // std::cout<<nodes<<'\n';
         int node_num = std::stoi(nodes);
+        // std::cout<<faces<<'\n';
         int face_num = std::stoi(faces);
         // std::cout<<"the polyhedron "<<i<<" have "<<node_num<<" nodes and "<<face_num<<" faces.\n"; 
         for(int n = 0; n < node_num; n++){
@@ -167,16 +177,19 @@ int main(int argc, char *argv[]) {
     int vector_size = polys_info.size();
     input.erase(input.end() - 4, input.end());
     std::vector<double> ratios;
+    int polys_with_kernel = 0;
+    std::ofstream kernelfile(input + "_kernel_volumes.txt");
+    
     for(int i = 0; i < vector_size; i++){
       std::pair<std::vector<vec3d>, std::vector<std::vector<uint>>> polyhedron = polys_info[i];
       std::vector<vec3d> v = polyhedron.first;
       std::vector<std::vector<uint>> p = polyhedron.second;
+      
       Polygonmesh<> m(v,p);
-      double area = calculatePolyhedronArea(v,p);
-      double volume = calculatePolyhedronVolume(v,p);
-      std::cout << "Polyhedron volume is = "<<volume<<'\n';
-
-
+      // std::cout << "no falla poly en " << i<< '\n';
+    //   double area = calculatePolyhedronArea(v,p);
+    //   double volume = calculatePolyhedronVolume(v,p);
+    //   std::cout << "Polyhedron volume is = "<<volume<<'\n';
 
       auto start = std::chrono::steady_clock::now();
 
@@ -188,29 +201,52 @@ int main(int argc, char *argv[]) {
       auto time = std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - start);
       // std::cout<<"vertexs: \n";
-      // for (int n = 0; n < K.kernel_verts.size(); n++){
-      //   vec3d node = K.kernel_verts[n];
+      // for (int n = 0; n < m.vector_verts().size(); n++){
+      //   vec3d node =  m.vector_verts()[n];
       //   std::cout << node.x() << " , " << node.y() << " , " << node.z() << '\n'; 
       // }
-      Polygonmesh<> kernel(K.kernel_verts, K.kernel_faces);
-      std::cout << "Kernel: " << kernel.num_verts() << " verts, "
-                << kernel.num_polys() << " faces" << std::endl
-                << "Elapsed time: " << time.count() << " ms" << std::endl;
-      double kernel_volume = calculatePolyhedronVolume(K.kernel_verts, K.kernel_faces);
-      std::cout << "Kernel volume = "<<kernel_volume<<'\n';
+      // for (int n = 0; n < m.vector_polys().size(); n++){
+      //   std::vector<uint> face =  m.vector_polys()[n];
+      //   for(auto p :face) std::cout<<p<<' ';
+      // }
       
-      std::string output = input + std::to_string(i) + "_kernel.off";
-      kernel.save(output.c_str());
-      std::cout << "Saved in: " << output << std::endl;
-      double ratio = kernel_volume/volume;
-      std::cout << "Volume ratio = "<<ratio<<'\n';
-      ratios.push_back(ratio);
+      // std::cout<<"kernel vertices\n";
+      // for (auto v:K.kernel_verts)std::cout<<v[0]<<' '<<v[1]<<' '<< v[2]<<'\n';
+      Polygonmesh<> kernel(K.kernel_verts, K.kernel_faces);
+      // std::cout << "no falla kernel en " << i<< '\n';
+      if (kernel.num_verts() > 0 && kernel.num_polys() > 0){
+        polys_with_kernel++;
+        
+      }
+    //   std::cout << "Kernel: " << kernel.num_verts() << " verts, "
+    //             << kernel.num_polys() << " faces" << std::endl
+    //             << "Elapsed time: " << time.count() << " ms" << std::endl;
+    //   double kernel_volume = calculatePolyhedronVolume(K.kernel_verts, K.kernel_faces);
+      // std::cout<<i<<'\n';
+      double kernel_volume = kernel.mesh_volume();
+    //   std::cout << "Kernel volume = "<<kernel_volume<<'\n';
+    //   std::cout << "Poly volume = "<<volume<<'\n';
+    //   std::string output = input + std::to_string(i) + "_kernel.off";
+    //   kernel.save(output.c_str());
+    //   std::cout << "Saved in: " << output << std::endl;
+    //   double ratio = kernel_volume/volume;
+    //   std::cout << "Volume ratio = "<<ratio<<'\n';
+    //   ratios.push_back(ratio);
+    //   if (ratio < 0.0001){
+    //     std::cout<< "########## 0 ###########\n";
+    //   }
+      kernelfile <<kernel_volume<<'\n';
+      
     }
-    double sum,prom;
-    double max = *std::max_element(ratios.begin(), ratios.end()), min = *std::min_element(ratios.begin(), ratios.end());
-    sum = std::accumulate(ratios.begin(), ratios.end(), 0);
-    prom = sum / ratios.size();
-    std::cout<<"Ratio statistics: \nMean: "<<prom<<'\n'<<"Min: "<<min<<'\n'<<"Max: "<<max<<'\n';
+    // double sum,prom;
+    // double max = *std::max_element(ratios.begin(), ratios.end()), min = *std::min_element(ratios.begin(), ratios.end());
+    // sum = std::accumulate(ratios.begin(), ratios.end(), 0);
+    // prom = sum / ratios.size();
+    // std::cout<<"Ratio statistics: \nMean: "<<prom<<'\n'<<"Min: "<<min<<'\n'<<"Max: "<<max<<'\n';
+    // std::cout<<"writing output file\n";
+    kernelfile <<polys_with_kernel<<' '<<vector_size;
+    // kernelfile <<"Ratio statistics: \nMean: "<<prom<<'\n'<<"Min: "<<min<<'\n'<<"Max: "<<max<<'\n';
+    kernelfile.close();
   }
   else{
     Polygonmesh<> m(input.c_str());
@@ -237,4 +273,5 @@ int main(int argc, char *argv[]) {
     kernel.save(output.c_str());
     std::cout << "Saved in: " << output << std::endl;
   }
+  return 0;
 }

@@ -179,9 +179,14 @@ void AbstractPolygonMesh<M,V,E,P>::init(const std::vector<vec3d>             & v
     this->p_data.reserve(np);
 
     // initialize mesh connectivity (and normals)
+    // std::cout<<"kernel polys"<<'\n';
+    // for(auto p : polys) {
+    //     for(auto pl : p) std::cout<<pl<<' ';
+    //     std::cout<<'\n';
+    //     }
     for(auto v : verts) this->vert_add(v);
     for(auto p : polys) this->poly_add(p);
-
+    // std::cout<<"polygonos buenos\n";
     if(this->mesh_data().update_normals) this->update_v_normals();
 
     this->copy_xyz_to_uvw(UVW_param);
@@ -193,11 +198,11 @@ void AbstractPolygonMesh<M,V,E,P>::init(const std::vector<vec3d>             & v
 
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 
-    std::cout << "load mesh\t"     <<
-                 this->num_verts() << "V / " <<
-                 this->num_edges() << "E / " <<
-                 this->num_polys() << "P  [" <<
-                 how_many_seconds(t0,t1) << "s]" << std::endl;
+    // std::cout << "load mesh\t"     <<
+    //              this->num_verts() << "V / " <<
+    //              this->num_edges() << "E / " <<
+    //              this->num_polys() << "P  [" <<
+    //              how_many_seconds(t0,t1) << "s]" << std::endl;
 }
 
 //::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -1477,6 +1482,7 @@ uint AbstractPolygonMesh<M,V,E,P>::poly_add(const std::vector<uint> & vlist)
     if(poly_id(vlist)!=-1)
     {
         std::cout << ANSI_fg_color_red << "WARNING: adding duplicated poly!" << ANSI_fg_color_default << std::endl;
+        std::cout << poly_id(vlist)<<'\n';
         return poly_id(vlist);
     }
 #ifndef NDEBUG
@@ -1493,12 +1499,14 @@ uint AbstractPolygonMesh<M,V,E,P>::poly_add(const std::vector<uint> & vlist)
     this->p2p.push_back(std::vector<uint>());
 
     // add missing edges
+    // for(uint vid : vlist) std::cout<<vid<<'\n';
     for(uint i=0; i<vlist.size(); ++i)
     {
         uint vid0 = vlist.at(i);
         uint vid1 = vlist.at((i+1)%vlist.size());
+        // std::cout<<"aqui antes'\n";
         int  eid = this->edge_id(vid0, vid1);
-
+        // std::cout<<"aqui despues\n";
         if (eid == -1) eid = this->edge_add(vid0, vid1);
     }
 

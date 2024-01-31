@@ -27,34 +27,3 @@ def ccw_check(face,tetra,node_list):
 
 
     return dot_product > 0
-     
-import vtk
-def vtk_to_obj(filename):
-       
-# Load VTK file
-        reader = vtk.vtkUnstructuredGridReader()
-        reader.SetFileName(filename+".vtk")
-        reader.Update()
-
-# Get points and cells from VTK dataset
-        points = reader.GetOutput().GetPoints()
-        cells = reader.GetOutput().GetCells()
-
-# Convert VTK points to NumPy array
-        points_array = [points.GetPoint(i) for i in range(points.GetNumberOfPoints())]
-
-# Write OBJ file
-        with open(filename+".obj", "w") as obj_file:
-    # Write vertices
-                for point in points_array:
-                        obj_file.write(f"v {point[0]} {point[1]} {point[2]}\n")
-
-    # Write faces
-                cells.InitTraversal()
-                while True:
-                        cell = vtk.vtkIdList()
-                        if cells.GetNextCell(cell):
-                                cell_size = cell.GetNumberOfIds()
-                                obj_file.write(f"f {' '.join([str(cell.GetId(i) + 1) for i in range(cell_size)])}\n")
-                        else:
-                                break

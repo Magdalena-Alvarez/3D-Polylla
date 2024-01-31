@@ -781,6 +781,10 @@ template<class M, class V, class E, class P>
 CINO_INLINE
 int AbstractMesh<M,V,E,P>::edge_id(const uint vid0, const uint vid1) const
 {
+    // if(vid0 == vid1){
+    //     std::cout<<vid0<<' '<<vid1<<'\n';
+    // }
+    
     assert(vid0 != vid1);
     for(uint eid : adj_v2e(vid0))
     {
