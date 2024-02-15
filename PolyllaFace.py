@@ -22,9 +22,9 @@ class PolyllaFace:
         self.FLAGS = {
             'r' : self.calculate_max_incircle_faces,
             'R' : self.calculate_max_circumcircle_faces,
-            # 'tra' : self.calculate_max_triangle_aspect_faces,
-            # 'are1' : self.calculate_max_aspect_ratio_e1_faces,
-            # 'are2' : self.calculate_max_aspect_ratio_e2_faces,
+            'tra' : self.calculate_max_triangle_aspect_faces,
+            'are1' : self.calculate_max_aspect_ratio_e1_faces,
+            'are2' : self.calculate_max_aspect_ratio_e2_faces,
             # 'are3' : self.calculate_max_aspect_ratio_e3_faces,
             'a' : self.calculate_max_area_faces
         }
@@ -110,6 +110,7 @@ class PolyllaFace:
 
     def calculate_max_triangle_aspect_faces(self):
         self.calculate_edges_length()
+        self.calculate_area_triangle_3d()
         aspects = []
         longest_faces = []
         for i in range(0, self.mesh.n_faces):
@@ -121,7 +122,7 @@ class PolyllaFace:
             L_max = max(length_edge_a,length_edge_b,length_edge_c)
 
             q = L_max*(length_edge_a + length_edge_b + length_edge_c) / (4 * sqrt(3) * area) # type: ignore
-            aspects.append(q)
+            aspects.append(self.mesh.face_list[i].area / q)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -142,9 +143,10 @@ class PolyllaFace:
             # coordsmaxface = [self.mesh.face_list[longest_faces[len(longest_faces)-1]]]
         # print(longest_faces)
         return longest_faces
-    
+    # aspect ratio for triangles from paper A Survey of Indicators for Mesh Quality Assessment
     def calculate_max_aspect_ratio_e1_faces(self):
         self.calculate_edges_length()
+        self.calculate_area_triangle_3d()
         aspects = []
         longest_faces = []
         for i in range(0, self.mesh.n_faces):
@@ -153,7 +155,7 @@ class PolyllaFace:
             length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
 
             ar = .5 * (length_edge_a * length_edge_b * length_edge_c) / (length_edge_a + length_edge_b + length_edge_c)
-            aspects.append(ar)
+            aspects.append(ar*self.mesh.face_list[i].area)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -175,6 +177,7 @@ class PolyllaFace:
         
     def calculate_max_aspect_ratio_e2_faces(self):
         self.calculate_edges_length()
+        self.calculate_area_triangle_3d()
         aspects = []
         longest_faces = []
         for i in range(0, self.mesh.n_faces):
@@ -187,7 +190,7 @@ class PolyllaFace:
             radious = (semiperimeter - length_edge_a) * (semiperimeter - length_edge_b) * (semiperimeter - length_edge_c) / semiperimeter
             ar = radious / L_max
             
-            aspects.append(ar)
+            aspects.append(ar*self.mesh.face_list[i].area)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -208,6 +211,7 @@ class PolyllaFace:
     
     def calculate_max_aspect_ratio_e3_faces(self):
         self.calculate_edges_length()
+        self.calculate_area_triangle_3d()
         aspects = []
         longest_faces = []
         for i in range(0, self.mesh.n_faces):
@@ -219,7 +223,7 @@ class PolyllaFace:
             Radious = (length_edge_a * length_edge_b * length_edge_c) / (4 * self.area(self.mesh.face_list[i])) # type: ignore
             ar =  L_max / Radious
             
-            aspects.append(ar)
+            aspects.append(ar * self.mesh.face_list[i].area)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -802,7 +806,7 @@ class PolyllaFace:
                 conv_polys+=1
                 polyhedron.is_convex = True
 
-        return conv_polys
+        return conv_polys/len(self.polyhedral_mesh)
     
     def polyhedron_area(self):
         ratios = []
