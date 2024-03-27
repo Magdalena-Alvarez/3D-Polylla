@@ -728,6 +728,7 @@ class PolyllaFace:
             if len(polyhedron.tetras) == 1:
                 count += 1
         print("Number of polyhedrons that are tetrahedrons: " + str(count))
+        return len(self.polyhedral_mesh), self.n_barrier_faces, self.polyhedra_with_barriers, count
 
 #############################################################################################
 #POLYHEDRA METRICS
@@ -799,7 +800,7 @@ class PolyllaFace:
             for i in range(len(nodes)):
                 v = np.array([self.mesh.node_list[nodes[i]].x,self.mesh.node_list[nodes[i]].y,self.mesh.node_list[nodes[i]].z])
                 nodes[i] = v
-            # nodes = np.array(nodes)
+            nodes = np.array(nodes)
             cvhull = ConvexHull(nodes)
             # cvHull_area = cvhull.area
             if set(cvhull.vertices) == set(range(len(nodes))):
