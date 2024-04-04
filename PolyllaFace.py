@@ -740,6 +740,7 @@ class PolyllaFace:
         if self.mesh.edge_list[0].length < 0:
             self.calculate_edges_length()
         for poly in polyhedrons:
+            # print(poly)
             faces = poly.faces
             # face_mins = []
             # face_maxs = []
@@ -902,7 +903,23 @@ class PolyllaFace:
         convex_num = len(self.polyhedral_mesh) - not_convexs
         kernel_rate = ((polys_w_kernel+convex_num)/len(self.polyhedral_mesh))*100
         
-        return [mean_volume, min_volume, max_volume, kernel_rate,]
+        return [mean_volume, min_volume, max_volume, kernel_rate]
+    
+    def original_mesh_edge_ratio(self):
+        self.calculate_edges_length()
+        ratios = []
+        for tetra in self.mesh.tetra_list:
+            edges = []
+            for face in tetra.faces:
+                for edge in self.mesh.face_list[face].edges:
+                    edges.append(self.mesh.edge_list[edge].length)
+            ratio = min(edges)/max(edges)
+            ratios.append(ratio)
+        mean_edge_ratio = statistics.mean(ratios)
+        min_edge_ratio = min(ratios)
+        max_edge_ratio = max(ratios)
+        return [mean_edge_ratio, min_edge_ratio, max_edge_ratio]
+
         
 
         
