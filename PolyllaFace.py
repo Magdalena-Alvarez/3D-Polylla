@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 import numpy as np
 from utils import ccw_check
-
+import tetgen
 
 
 class PolyllaFace:
@@ -155,7 +155,7 @@ class PolyllaFace:
             length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
 
             ar = .5 * (length_edge_a * length_edge_b * length_edge_c) / (length_edge_a + length_edge_b + length_edge_c)
-            aspects.append(ar*self.mesh.face_list[i].area)
+            aspects.append(self.mesh.face_list[i].area/ar)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -190,7 +190,7 @@ class PolyllaFace:
             radious = (semiperimeter - length_edge_a) * (semiperimeter - length_edge_b) * (semiperimeter - length_edge_c) / semiperimeter
             ar = radious / L_max
             
-            aspects.append(ar*self.mesh.face_list[i].area)
+            aspects.append(self.mesh.face_list[i].area/ar)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
@@ -789,6 +789,7 @@ class PolyllaFace:
         max_face_num = max(faces_num)
 
         return [mean_face_num, min_face_num, max_face_num]
+    
     def convex_polyhedrons(self):
         conv_polys = 0
         for polyhedron in self.polyhedral_mesh:
@@ -803,7 +804,6 @@ class PolyllaFace:
                 nodes[i] = v
             nodes = np.array(nodes)
             cvhull = ConvexHull(nodes)
-            # cvHull_area = cvhull.area
             if set(cvhull.vertices) == set(range(len(nodes))):
                 conv_polys+=1
                 polyhedron.is_convex = True
