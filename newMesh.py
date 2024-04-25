@@ -1,4 +1,5 @@
 import numpy as np
+import statistics
 
 class FaceNode:
     def __init__(self,v3,i):
@@ -41,7 +42,7 @@ class Polyhedron:
         return str(self)
 
     def __str__(self):
-        return "(Polyhedron " + ": Tetra: " + str(self.tetras) + ", Is convex: " + str(self.is_convex)  + "\n"
+        return "(Polyhedron " + ": Tetra: " + str(self.tetras) + "Face n: " + str(len(self.faces)) +  ", Is convex: " + str(self.is_convex)  + ")n"
 
 
 class Vertex:
@@ -113,7 +114,7 @@ class Tetrahedron:
         return str(self)
 
     def __str__(self):
-        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) + ")\n"
+        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) +  " Edges: " + str(self.edges) + ")\n"
     
 
 class EdgeTetrahedronMesh:
@@ -388,6 +389,27 @@ class EdgeTetrahedronMesh:
     # Calculate a list of tetrahedrons adjacent to each edge
     # only use this functions when you have edges adjacents to two tetrahedrons but no adjacent by any face
     # def calculate_tetrahedrons_for_edge(self, ea = self.node_list[v1]ahedrons)]    
+    def calculate_edges_length(self):
+        for edge in self.edge_list:
+            v1 = self.node_list[edge.v1]
+            v2 = self.node_list[edge.v2]
+            distance = (v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2 #without sqrt for performance
+            edge.length = distance
+
+    def get_edge_ratio(self):
+        self.calculate_edges_length()
+        ratios = []
+        for tetra in self.tetra_list:
+            edges = []
+            for face in tetra.faces:
+                for edge in self.face_list[face].edges:
+                    edges.append(self.edge_list[edge].length)
+            ratio = min(edges)/max(edges)
+            ratios.append(ratio)
+        mean_edge_ratio = statistics.mean(ratios)
+        min_edge_ratio = min(ratios)
+        max_edge_ratio = max(ratios)
+        return [mean_edge_ratio, min_edge_ratio, max_edge_ratio]
 
     def get_face(self, f):
         return self.face_list[f]
@@ -938,6 +960,29 @@ class FaceTetrahedronMesh:
     #     for edge in edge_list:
     #         edge.tetrahedrons = [*set(edge.tetrahedrons)]    
 
+
+    def calculate_edge_length(self,edge):
+
+        v1 = self.node_list[edge.v1]
+        v2 = self.node_list[edge.v2]
+        distance = (v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2 #without sqrt for performance
+        return distance
+
+    def get_edge_ratio(self):
+        ratios = []
+        for tetra in self.tetra_list:
+            edges = []
+            for face in tetra.faces:
+                for edge in self.face_list[face].edges:
+                    self.edge_list[edge].length = self.calculate_edge_length(self.edge_list[edge])
+                    edges.append(self.edge_list[edge].length)
+            ratio = min(edges)/max(edges)
+            ratios.append(ratio)
+        mean_edge_ratio = statistics.mean(ratios)
+        min_edge_ratio = min(ratios)
+        max_edge_ratio = max(ratios)
+        return [mean_edge_ratio, min_edge_ratio, max_edge_ratio]
+    
     def get_face(self, f):
         return self.face_list[f]
     

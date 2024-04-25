@@ -17,6 +17,7 @@ import tetgen
 class PolyllaFace:
     def __init__(self, mesh, flag = 'r'):
         self.mesh = mesh
+        self.flag = flag
         self.n_barrier_faces = 0
         self.polyhedra_with_barriers = 0
         self.FLAGS = {
@@ -122,13 +123,13 @@ class PolyllaFace:
             L_max = max(length_edge_a,length_edge_b,length_edge_c)
 
             q = L_max*(length_edge_a + length_edge_b + length_edge_c) / (4 * sqrt(3) * area) # type: ignore
-            aspects.append(abs(area - (area * q)))
+            aspects.append(area / q)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
             a2 = aspects[self.mesh.tetra_list[i].faces[2]]
             a3 = aspects[self.mesh.tetra_list[i].faces[3]]
-            maxFace = min(a0, a1, a2, a3)
+            maxFace = max(a0, a1, a2, a3)
             if maxFace == a0:
                 longest_faces.append(0)
             elif maxFace == a1:
@@ -155,13 +156,13 @@ class PolyllaFace:
             length_edge_c = self.mesh.edge_list[self.mesh.face_list[i].edges[2]].length
 
             ar = .5 * (length_edge_a * length_edge_b * length_edge_c) / (length_edge_a + length_edge_b + length_edge_c)
-            aspects.append(abs(self.mesh.face_list[i].area - (self.mesh.face_list[i].area*ar)))
+            aspects.append(self.mesh.face_list[i].area * ar)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
             a2 = aspects[self.mesh.tetra_list[i].faces[2]]
             a3 = aspects[self.mesh.tetra_list[i].faces[3]]
-            maxFace = min(a0, a1, a2, a3)
+            maxFace = max(a0, a1, a2, a3)
             if maxFace == a0:
                 longest_faces.append(0)
             elif maxFace == a1:
@@ -190,13 +191,13 @@ class PolyllaFace:
             radious = (semiperimeter - length_edge_a) * (semiperimeter - length_edge_b) * (semiperimeter - length_edge_c) / semiperimeter
             ar = radious / L_max
             
-            aspects.append(abs(self.mesh.face_list[i].area  - (self.mesh.face_list[i].area * ar)))
+            aspects.append(self.mesh.face_list[i].area * ar)
         for i in range(0, self.mesh.n_tetrahedrons):
             a0 = aspects[self.mesh.tetra_list[i].faces[0]]
             a1 = aspects[self.mesh.tetra_list[i].faces[1]]
             a2 = aspects[self.mesh.tetra_list[i].faces[2]]
             a3 = aspects[self.mesh.tetra_list[i].faces[3]]
-            maxFace = min(a0, a1, a2, a3)
+            maxFace = max(a0, a1, a2, a3)
             if maxFace == a0:
                 longest_faces.append(0)
             elif maxFace == a1:
@@ -598,23 +599,29 @@ class PolyllaFace:
     def printOFF_polyhedralmesh_colors(self, filename):
         print("writing OFF file: "+ filename)
         list_face = []
+        nodes = []
         colors = []
         for polyhedron in self.polyhedral_mesh:
-            color = [random.randint(0,255),random.randint(0,255),random.randint(0,255)]
+            color = [random.random(),random.random(),random.random()]
             for face in polyhedron.faces: 
-                list_face.append(face)
-                colors.append(color)
-        list_face =  list(dict.fromkeys(list_face))
+                
+                if(len(polyhedron.faces) == 4):
+                    list_face.append(face)
+                    colors.append(color)
+                # else:
+                #     colors.append([0.8,0.8,0.8,0.5])
+        #list_face =  list(dict.fromkeys(list_face))
         with open(filename, 'w') as fh:
             fh.write("OFF\n")
             fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
             for v in self.mesh.node_list:
                 fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+            print(len(colors[0]), len(list_face))
             for f in list_face:
                 v1 = self.mesh.face_list[f].v1
                 v2 = self.mesh.face_list[f].v2
                 v3 = self.mesh.face_list[f].v3
-                fh.write("3 %d %d %d %d %d %d\n" % (v1, v2, v3, colors[f][0],colors[f][1],colors[f][2]))
+                fh.write("3 %d %d %d .4 .5 .1\n" % (v1, v2, v3))#, colors[f][0],colors[f][1],colors[f][2]))
 
     def printOFF_polyhedralmesh(self, filename):
         print("writing OFF file: "+ filename)
@@ -673,6 +680,35 @@ class PolyllaFace:
                         v3 = nodes.index(self.mesh.face_list[f].v2)
                     fh.write("3 %d %d %d # %d\n" % (v1, v2, v3,f))
             i+=1
+
+    def printOFF_one_poly(self,index,filename):
+        # print("writing OFF files: "+ filename)
+        polyhedron = self.polyhedral_mesh[index]
+        list_face = polyhedron.faces
+        nodes = []
+        with open(filename+'.off', 'w') as fh:
+            fh.write("OFF\n")
+            for tetra in polyhedron.tetras:
+                vertex = [self.mesh.tetra_list[tetra].v1, self.mesh.tetra_list[tetra].v2,self.mesh.tetra_list[tetra].v3,self.mesh.tetra_list[tetra].v4]
+                for v in vertex:
+                    if v not in nodes :
+                        nodes.append(v) 
+            fh.write("%d %d 0\n" % (len(nodes), len(list_face)))
+            for node in nodes:
+                v = self.mesh.node_list[node]
+                fh.write("%f %f %f\n" % (v.x, v.y, v.z))
+            for f in list_face:
+                t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
+                    v1 = nodes.index(self.mesh.face_list[f].v1)
+                    v2 = nodes.index(self.mesh.face_list[f].v2)
+                    v3 = nodes.index(self.mesh.face_list[f].v3)
+                else:
+                    v1 = nodes.index(self.mesh.face_list[f].v1)
+                    v2 = nodes.index(self.mesh.face_list[f].v3)
+                    v3 = nodes.index(self.mesh.face_list[f].v2)
+                fh.write("3 %d %d %d # %d\n" % (v1, v2, v3,f))
+
 
     def writePolygonFile(self,filename):
         # print("writing OFF files: "+ filename)
@@ -733,12 +769,17 @@ class PolyllaFace:
 #############################################################################################
 #POLYHEDRA METRICS
 #############################################################################################
-
+    def edge_length(self, edge):
+        v1 = self.mesh.node_list[edge.v1]
+        v2 = self.mesh.node_list[edge.v2]
+        distance = (v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2 #without sqrt for performance
+        edge.length = distance
+    
     def edge_ratio(self):
         polyhedrons = self.polyhedral_mesh
         ratios = []
-        if self.mesh.edge_list[0].length < 0:
-            self.calculate_edges_length()
+        # if self.mesh.edge_list[0].length < 0:
+        #     self.calculate_edges_length()
         for poly in polyhedrons:
             # print(poly)
             faces = poly.faces
@@ -748,6 +789,7 @@ class PolyllaFace:
             for face in faces:
                 # edges = []
                 for edge in self.mesh.face_list[face].edges:
+                    self.edge_length(self.mesh.edge_list[edge])
                     edges.append(self.mesh.edge_list[edge].length)
                 # edge_min = min(edges)
                 # edge_max = max(edges)
@@ -759,10 +801,12 @@ class PolyllaFace:
             ratios.append(ratio)
             # print(poly_min,poly_max)
         mean_ratio = statistics.mean(ratios)
+        median_ratio = statistics.median(ratios)
+        variance_ratio = statistics.variance(ratios)
         min_ratio = min(ratios)
         max_ratio = max(ratios)
 
-        return [mean_ratio, min_ratio, max_ratio]
+        return [mean_ratio, min_ratio, max_ratio,median_ratio,variance_ratio]
     
     def tetra_per_poly(self):
         polyhedrons = self.polyhedral_mesh
@@ -772,10 +816,14 @@ class PolyllaFace:
             tetras.append(tetra_num)
         
         mean_tetra_num = statistics.mean(tetras)
+        median_tetra_num = statistics.median(tetras)
+        variance_tetra_num = statistics.variance(tetras)
         min_tetra_num = min(tetras)
         max_tetra_num = max(tetras)
+        i = tetras.index(max_tetra_num)
+        self.printOFF_one_poly(i,'BiggestPoly/'+str(self.mesh.n_nodes)+self.flag+'.off')
 
-        return [mean_tetra_num, min_tetra_num, max_tetra_num]
+        return [mean_tetra_num, min_tetra_num, max_tetra_num,median_tetra_num,variance_tetra_num]
     
     def faces_per_poly(self):
         polyhedrons = self.polyhedral_mesh
@@ -785,10 +833,12 @@ class PolyllaFace:
             faces_num.append(face_num)
         
         mean_face_num = statistics.mean(faces_num)
+        median_face_num = statistics.median(faces_num)
+        variance_face_num = statistics.variance(faces_num)
         min_face_num = min(faces_num)
         max_face_num = max(faces_num)
 
-        return [mean_face_num, min_face_num, max_face_num]
+        return [mean_face_num, min_face_num, max_face_num,median_face_num,variance_face_num]
     
     def convex_polyhedrons(self):
         conv_polys = 0
@@ -834,10 +884,12 @@ class PolyllaFace:
             ratio = suma_area / cvHull_area
             ratios.append(ratio)
         mean_ratio_area = statistics.mean(ratios)
+        median_ratio_area = statistics.median(ratios)
+        variance_ratio_area = statistics.variance(ratios)
         min_ratio_area = min(ratios)
         max_ratio_area = max(ratios)
 
-        return [mean_ratio_area, min_ratio_area, max_ratio_area]
+        return [mean_ratio_area, min_ratio_area, max_ratio_area,median_ratio_area,variance_ratio_area]
     
     def tetra_volume(self, tetra):
         t = self.mesh.tetra_list[tetra]
@@ -898,12 +950,14 @@ class PolyllaFace:
                 ratios.append(ratio)
                 # print(volume,kernel_volumes[i],ratio)
         mean_volume = statistics.mean(ratios)
+        median_volume= statistics.median(ratios)
+        variance_volume = statistics.variance(ratios)
         min_volume = min(ratios)
         max_volume = max(ratios)
         convex_num = len(self.polyhedral_mesh) - not_convexs
         kernel_rate = ((polys_w_kernel+convex_num)/len(self.polyhedral_mesh))*100
         
-        return [mean_volume, min_volume, max_volume, kernel_rate]
+        return [mean_volume, min_volume, max_volume, kernel_rate,median_volume,variance_volume]
     
     def original_mesh_edge_ratio(self):
         self.calculate_edges_length()
