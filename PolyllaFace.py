@@ -603,9 +603,8 @@ class PolyllaFace:
         colors = []
         for polyhedron in self.polyhedral_mesh:
             color = [random.random(),random.random(),random.random()]
-            for face in polyhedron.faces: 
-                
-                if(len(polyhedron.faces) == 4):
+            if(len(polyhedron.faces) == 4):
+                for face in polyhedron.faces: 
                     list_face.append(face)
                     colors.append(color)
                 # else:
@@ -621,7 +620,7 @@ class PolyllaFace:
                 v1 = self.mesh.face_list[f].v1
                 v2 = self.mesh.face_list[f].v2
                 v3 = self.mesh.face_list[f].v3
-                fh.write("3 %d %d %d .4 .5 .1\n" % (v1, v2, v3))#, colors[f][0],colors[f][1],colors[f][2]))
+                fh.write("3 %d %d %d 3 .4 .5 .1\n" % (v1, v2, v3))#, colors[f][0],colors[f][1],colors[f][2]))
 
     def printOFF_polyhedralmesh(self, filename):
         print("writing OFF file: "+ filename)
