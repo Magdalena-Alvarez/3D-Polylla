@@ -30,6 +30,7 @@ class Face:
         self.is_boundary = boundary
         self.n1 = n1
         self.n2 = n2
+        self.neighs = [n1,n2]
         self.edges = []
         self.area = -1
 

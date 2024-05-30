@@ -67,6 +67,9 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "bit": "cpp"
-    }
+        "bit": "cpp",
+        "any": "cpp",
+        "forward_list": "cpp"
+    },
+    "cmake.sourceDirectory": "/home/malvarez/Documents/Tesis/3D-Polylla/Experiments"
 }
