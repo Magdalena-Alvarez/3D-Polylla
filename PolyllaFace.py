@@ -63,37 +63,6 @@ class PolyllaFace:
                 poly.faces = polyhedron.copy()
                 self.polyhedral_mesh.append(poly)
 
-        # join coplanar faces
-        #self.remove_coplanar_faces(self.polyhedral_mesh[0])
-
-#    def remove_coplanar_faces(self, polyhedron):
-#        faces_of_polyhedron = polyhedron.faces
-#        face = polyhedron.faces[0]
-#        e1 = self.mesh.face_list[face].edges[0]
-#        e2 = self.mesh.face_list[face].edges[1]
-#        e3 = self.mesh.face_list[face].edges[2]
-#
-#        faces_e1 = self.mesh.edge_list[e1].faces
-#
-#        #find adjacent faces
-#        #adjacent to e1
-#        tula = list(set(faces_e1) & set(faces_of_polyhedron) - set([face]))[0]
-#        #adjacent to e2
-#        tula2 = list(set(self.mesh.edge_list[e2].faces) & set(faces_of_polyhedron) - set([face]))[0]
-#        #adjacent to e3
-#        tula3 = list(set(self.mesh.edge_list[e3].faces) & set(faces_of_polyhedron) - set([face]))[0]
-#
-#        adjacent_faces = [tula, tula2, tula3]
-#
-#    #Calcuyalte volume of a tetrahedron given its vertices
-#    #https://stackoverflow.com/questions/9866452/calculate-volume-of-any-tetrahedron-given-4-points
-#    def calculate_tetrahedron_volume(self, v1, v2, v3, v4):
-#        av1 = np.array([v1.x, v1.y, v1.z])
-#        av2 = np.array([v2.x, v2.y, v2.z])
-#        av3 = np.array([v3.x, v3.y, v3.z])
-#        av4 = np.array([v4.x, v4.y, v4.z])
-#        return abs(np.dot(av1-av4, np.cross(av2-av4, av3-av4)))/6
-
 #############################################################################################
 # FACE METRICS
 #############################################################################################   
@@ -344,13 +313,7 @@ class PolyllaFace:
     def calculate_max_area_faces(self):
         self.calculate_area_triangle_3d()
         longest = []
-        for tetra in self.mesh.tetra_list:
-            # Calcula el area de cada cara
-            # if self.mesh.face_list[tetra.faces[0]].area < 0 : self.mesh.face_list[tetra.faces[0]].area = self.area(self.mesh.face_list[tetra.faces[0]])
-            # if self.mesh.face_list[tetra.faces[1]].area < 0 : self.mesh.face_list[tetra.faces[1]].area = self.area(self.mesh.face_list[tetra.faces[1]])
-            # if self.mesh.face_list[tetra.faces[2]].area < 0 : self.mesh.face_list[tetra.faces[2]].area = self.area(self.mesh.face_list[tetra.faces[2]])
-            # if self.mesh.face_list[tetra.faces[3]].area < 0 : self.mesh.face_list[tetra.faces[3]].area = self.area(self.mesh.face_list[tetra.faces[3]])
-            
+        for tetra in self.mesh.tetra_list:            
             a0 = self.mesh.face_list[tetra.faces[0]].area
             a1 = self.mesh.face_list[tetra.faces[1]].area
             a2 = self.mesh.face_list[tetra.faces[2]].area
@@ -391,8 +354,6 @@ class PolyllaFace:
         terminal_faces = list(dict.fromkeys(terminal_faces))
 
         return terminal_faces
-
-
 
     def calculate_seed_tetrahedrons(self):
         seed_tetra = []
@@ -627,7 +588,7 @@ class PolyllaFace:
         list_face = []
         for polyhedron in self.polyhedral_mesh:
             for face in polyhedron.faces:
-                t = self.mesh.face_list[face].neighs[0] if (self.mesh.face_list[face].neighs[0] in polyhedron.tetras) else self.mesh.face_list[face].neighs[1]
+                t = self.mesh.face_list[face].n1 if (self.mesh.face_list[face].n1 in polyhedron.tetras) else self.mesh.face_list[face].n2
                 if not ccw_check(self.mesh.face_list[face], self.mesh.tetra_list[t],self.mesh.node_list):
                     # print('check face', face)
                     v2 = self.mesh.face_list[face].v2
@@ -668,7 +629,7 @@ class PolyllaFace:
                     v = self.mesh.node_list[node]
                     fh.write("%f %f %f\n" % (v.x, v.y, v.z))
                 for f in list_face:
-                    t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                    t = self.mesh.face_list[f].n1 if (self.mesh.face_list[f].n1 in polyhedron.tetras) else self.mesh.face_list[f].n2
                     if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
                         v1 = nodes.index(self.mesh.face_list[f].v1)
                         v2 = nodes.index(self.mesh.face_list[f].v2)
@@ -697,7 +658,7 @@ class PolyllaFace:
                 v = self.mesh.node_list[node]
                 fh.write("%f %f %f\n" % (v.x, v.y, v.z))
             for f in list_face:
-                t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                t = self.mesh.face_list[f].n1 if (self.mesh.face_list[f].n1 in polyhedron.tetras) else self.mesh.face_list[f].n2
                 if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
                     v1 = nodes.index(self.mesh.face_list[f].v1)
                     v2 = nodes.index(self.mesh.face_list[f].v2)
@@ -738,7 +699,7 @@ class PolyllaFace:
                 
                 for f in list_face:
                     # print(list_face)
-                    t = self.mesh.face_list[f].neighs[0] if (self.mesh.face_list[f].neighs[0] in polyhedron.tetras) else self.mesh.face_list[f].neighs[1]
+                    t = self.mesh.face_list[f].n1 if (self.mesh.face_list[f].n1 in polyhedron.tetras) else self.mesh.face_list[f].n2
                     if ccw_check(self.mesh.face_list[f], self.mesh.tetra_list[t],self.mesh.node_list):
                         v1 = nodes.index(self.mesh.face_list[f].v1)
                         v2 = nodes.index(self.mesh.face_list[f].v2)
