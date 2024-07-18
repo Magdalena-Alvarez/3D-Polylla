@@ -378,7 +378,6 @@ class FaceTetrahedronMesh:
             face_matrix.append([])
         file.close()
         return vertex_list,matrix,face_matrix
-
     def save_faces(self, filef, edges_matrix,n_node,face_matrix):
     
         face_list = []
@@ -517,7 +516,6 @@ class FaceTetrahedronMesh:
                             face_list[f2].n1 = tetra.i
                         elif(face_list[f2].n2 == -1):
                             face_list[f2].n2 = tetra.i
-
         v = [tetra.v3,tetra.v4,tetra.v1]
         v.sort()
         for tree in face_matrix[v[0]]:
@@ -546,7 +544,6 @@ class FaceTetrahedronMesh:
         
         tetra.faces = faces
         return
-
 
     def asign_neighs(self,tetra, face_list):
         neighs = []

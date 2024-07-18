@@ -32,7 +32,7 @@ class PolyllaFace:
         #self.longest_faces = self.calculate_max_area_faces()
         self.longest_faces = self.FLAGS[flag]()
         self.seed_tetra = self.calculate_seed_tetrahedrons()
-        self.bitvector_frontier_edges = self.calculate_frontier_faces()
+        self.bitvector_frontier_faces = self.calculate_frontier_faces()
 
         self.visited_tetra = [False] * mesh.n_tetrahedrons
         self.bivector_seed_tetra_in_repair = [False] * mesh.n_tetrahedrons
@@ -76,6 +76,8 @@ class PolyllaFace:
         av2 = np.array([v2.x, v2.y, v2.z])
         av3 = np.array([v3.x, v3.y, v3.z])
         area = np.linalg.norm(np.cross(av2-av1, av3-av1))
+        if(area < 0):
+            print('-1')
         return area
 
     def calculate_max_triangle_aspect_faces(self):
@@ -253,6 +255,8 @@ class PolyllaFace:
             v1 = self.mesh.node_list[edge.v1]
             v2 = self.mesh.node_list[edge.v2]
             distance = (v1.x - v2.x)**2 + (v1.y - v2.y)**2 + (v1.z - v2.z)**2 #without sqrt for performance
+            if(distance < 0):
+                print('-1')
             edge.length = distance
 
     ## Create a list with the index of the face of each treehedral that have the longest incircle radius
@@ -307,6 +311,8 @@ class PolyllaFace:
             av3 = np.array([v3.x, v3.y, v3.z])
             area = np.linalg.norm(np.cross(av2-av1, av3-av1))
             # print(face.i, area)
+            if(area < 0):
+                print('-1')
             face.area = area*0.5
 
     # Esto puede ser un escrito en dos lineas
@@ -375,7 +381,7 @@ class PolyllaFace:
                 # Si no es la cara más larga de ningún tetra de n1 o n2, es una frontier-edge
                 if f == longest_face_n1 and f == longest_face_n2:
                     seed_tetra.append(n1)
-
+        # print(seed_tetra)
         return seed_tetra
 
 
@@ -414,9 +420,19 @@ class PolyllaFace:
             tetra_neighs = self.mesh.tetra_list[tetra].neighs
             if face_id != -1:
                 #si la cara es un frontier-face, entonces no se sigue la recursión
-                if self.bitvector_frontier_edges[face_id] == True:
+                if self.bitvector_frontier_faces[face_id] == True:
                     # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n','fronteir', self.mesh.face_list[face_id])
+                    
+                    # if(face_id not in polyhedron and not((self.mesh.face_list[face_id].n1 in polyhedron_tetras) and (self.mesh.face_list[face_id].n2 in polyhedron_tetras))):
+                    
+                    # if(face_id in polyhedron):
+                    #     polyhedron.remove(face_id)
+                    #     # print('no saving', face_id)
+                    # else:
                     polyhedron.append(face_id)
+                    #     print('saving', face_id)
+                    # print(self.mesh.face_list[face_id])
+                    # print(polyhedron_tetras)
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     # print(i,tetra_neighs,self.mesh.tetra_list[tetra],'\n', self.mesh.face_list[face_id])
                     next_tetra = tetra_neighs[i]
@@ -482,7 +498,7 @@ class PolyllaFace:
             if(middle_Face == barrierFace):
                 sys.exit("middle_Face == faces_of_barrierFaceTip")
             # convert the middle internalface into a frontier-face
-            self.bitvector_frontier_edges[middle_Face] = True
+            self.bitvector_frontier_faces[middle_Face] = True
 
             #store adjacent tetrahedrons to the sub seed list
             tetra1 = self.mesh.face_list[barrierFace].n1
@@ -532,7 +548,7 @@ class PolyllaFace:
             tetra_neighs = self.mesh.tetra_list[tetra].neighs
             if face_id != -1:
                 #si la cara es un frontier-face, entonces no se sigue la recursión
-                if self.bitvector_frontier_edges[face_id] == True:
+                if self.bitvector_frontier_faces[face_id] == True:
                     polyhedron.append(face_id)
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
@@ -576,7 +592,7 @@ class PolyllaFace:
             fh.write("%d %d 0\n" % (self.mesh.n_nodes, len(list_face)))
             for v in self.mesh.node_list:
                 fh.write("%f %f %f\n" % (v.x, v.y, v.z))
-            print(len(colors[0]), len(list_face))
+            # print(len(colors[0]), len(list_face))
             for f in list_face:
                 v1 = self.mesh.face_list[f].v1
                 v2 = self.mesh.face_list[f].v2
