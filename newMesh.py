@@ -29,9 +29,6 @@ class FaceTree:
     def __str__(self):
         return "(Face Tree " + 'V2: ' +str(self.v2) + " V3's: ( " + str(self.node_list)+ ") " + ")\n"
 
-    
-
-
 class Polyhedron:
     def __init__(self):
         self.tetras = []
@@ -410,6 +407,7 @@ class EdgeTetrahedronMesh:
         max_edge_ratio = max(ratios)
         return [mean_edge_ratio, min_edge_ratio, max_edge_ratio]
 
+
     def get_face(self, f):
         return self.face_list[f]
     
@@ -462,9 +460,9 @@ class FaceTetrahedronMesh:
         face_list = []
         file = open(filef, "r")
         next(file)
+
         # face_matrix = [[None]*n_node]*n_node# en c++ es un arreglo[nnode][nnode][nnode]
 
-        
         for line in file:
             l = line.split()
             if l[0] == '#':
@@ -478,6 +476,7 @@ class FaceTetrahedronMesh:
             face_list.append(f)
             v = [v1,v2,v3]
             v.sort()
+            
             if not face_matrix[v[0]]:
                 face_matrix[v[0]].append(FaceTree(v[1],v[2],fi))
             else:
@@ -570,6 +569,7 @@ class FaceTetrahedronMesh:
         return tetra_list
     
     def asign_faces(self,tetra, face_matrix, face_list):
+
         faces = []
         v = [tetra.v1,tetra.v2,tetra.v3]
         v.sort()
