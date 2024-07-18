@@ -583,17 +583,8 @@ class FaceTetrahedronMesh:
         tetra_list = self.save_tetra(ele_file,face_matrix,face_list) # self.read_ele_file(ele_file)
         
         print("Processesing faces with tetrahedorns")
+        
         # Calculate border tetrahedron adjacent to each edge
-        for face in face_list:
-            for edge in face.edges:
-                if face.is_boundary:
-                    n1 = face.n1
-                    n2 = face.n2
-                    if n1 != -1:
-                        edge_list[edge].first_tetra = n1
-                    else:
-                        edge_list[edge].first_tetra = n2
-
         for tetra in range(len(tetra_list)):
             self.asign_neighs(tetra_list[tetra],face_list)
         
