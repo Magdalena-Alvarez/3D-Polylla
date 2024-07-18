@@ -64,7 +64,6 @@ class Face:
         self.vertex = [v1,v2,v3]
         self.n1 = -1
         self.n2 = -1
-        self.neighs = []
         self.is_boundary = False
         self.edges = [] #tetra case 3, poly case at least 3
         self.area = -1
@@ -495,17 +494,17 @@ class FaceTetrahedronMesh:
         faces = []
         v = [tetra.v1,tetra.v2,tetra.v3]
         v.sort()
-        # print('tetra ',tetra.i)
         for tree in face_matrix[v[0]]:
             if tree.get_root() == v[1]:
                 for node in tree.node_list:
                     if node.v3 == v[2]:
                         f1 = node.i
                         faces.append(f1)
-                        face_list[f1].neighs.append(tetra.i)
-                        # print(tetra.i,face_list[f1].neighs )
-                        
-        # print(found)
+                        if(face_list[f1].n1 == -1):
+                            face_list[f1].n1 = tetra.i
+                        elif(face_list[f1].n2 == -1):
+                            face_list[f1].n2 = tetra.i
+                    
         v = [tetra.v2,tetra.v3,tetra.v4]
         v.sort()
         for tree in face_matrix[v[0]]:
@@ -514,10 +513,11 @@ class FaceTetrahedronMesh:
                     if node.v3 == v[2]:
                         f2 = node.i
                         faces.append(f2)
-                        face_list[f2].neighs.append(tetra.i)
-                        # print(tetra.i,face_list[f2].neighs )
-                        
-        # print(found)
+                        if(face_list[f2].n1 == -1):
+                            face_list[f2].n1 = tetra.i
+                        elif(face_list[f2].n2 == -1):
+                            face_list[f2].n2 = tetra.i
+
         v = [tetra.v3,tetra.v4,tetra.v1]
         v.sort()
         for tree in face_matrix[v[0]]:
@@ -526,10 +526,11 @@ class FaceTetrahedronMesh:
                     if node.v3 == v[2]:
                         f3 = node.i
                         faces.append(f3)
-                        face_list[f3].neighs.append(tetra.i)
+                        if(face_list[f3].n1 == -1):
+                            face_list[f3].n1 = tetra.i
+                        elif(face_list[f3].n2 == -1):
+                            face_list[f3].n2 = tetra.i
                         
-                        # print(tetra.i,face_list[f3].neighs )
-        # print(found)
         v = [tetra.v4,tetra.v1,tetra.v2]
         v.sort()
         for tree in face_matrix[v[0]]:
@@ -538,13 +539,12 @@ class FaceTetrahedronMesh:
                     if node.v3 == v[2]:
                         f4 = node.i
                         faces.append(f4)
-                        face_list[f4].neighs.append(tetra.i)
-                        
-                        # print(tetra.i,face_list[f4].neighs )
-        # print(found)
+                        if(face_list[f4].n1 == -1):
+                            face_list[f4].n1 = tetra.i
+                        elif(face_list[f4].n2 == -1):
+                            face_list[f4].n2 = tetra.i
         
         tetra.faces = faces
-        # print('faces to tetra',tetra.i,faces, tetra)
         return
 
 
@@ -552,25 +552,19 @@ class FaceTetrahedronMesh:
         neighs = []
         # print(tetra.faces)
         for face in tetra.faces:
-            if len(face_list[face].neighs) < 2:
+            if (face_list[face].n1 == -1 or face_list[face].n2 == -1):
                 tetra.is_boundary = True
                 face_list[face].is_boundary = True
-            face_list[face].n1 = face_list[face].neighs[0]
+                
             if face_list[face].n1 !=tetra.i: 
                 neighs.append(face_list[face].n1)
                 # print('agrega n1')
             if not face_list[face].is_boundary:
-                face_list[face].n2 = face_list[face].neighs[1]
                 if face_list[face].n2 !=tetra.i: 
                     neighs.append(face_list[face].n2)
-                    # print('agrega n2')
             else:
                 neighs.append(-1)
-                # print('agrega -1')
-
-        # set_version = set(neighs)
         tetra.neighs = neighs
-        # print(tetra.i,tetra.neighs)
         
     def construct_tetrahedral_mesh(self, node_file, face_file, ele_file):
         print("Reading vertex file")
