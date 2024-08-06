@@ -63,7 +63,6 @@ class Face:
         self.v3 = v3
         self.n1 = -1
         self.n2 = -1
-        self.is_boundary = False
         self.edges = [] #tetra case 3, poly case at least 3
         self.area = -1.0
 
@@ -99,14 +98,13 @@ class Tetrahedron:
         self.v3 = v3
         self.v4 = v4
         self.neighs = [] #4 neighs not necessary, we can use faces neighs
-        self.is_boundary = False #if len(neighs) > 4 True
         self.faces = []
 
     def __repr__(self):
         return str(self)
 
     def __str__(self):
-        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) +  " Edges: " + str(self.edges) + ")\n"
+        return "(Tetra " + str(self.i) + " Vertex 1: " + str(self.v1) + " Vertex 2: " + str(self.v2)  + " Vertex 3: " + str(self.v3) + " Vertex 4: " + str(self.v4) + " Faces: " + str(self.faces) + " Neighs: " + str(self.neighs) +  " Edges: " + ")\n"
     
 
 class EdgeTetrahedronMesh:
@@ -495,13 +493,13 @@ class FaceTetrahedronMesh:
             v4 = int(l[4])
             ti = int(l[0])
             t = Tetrahedron(ti, v1,v2,v3,v4)
-            self.asign_faces(t,face_matrix,face_list)
+            self.asign_faces(t,face_matrix,face_list, tetra_list)
             tetra_list.append(t)
 
         file.close()
         return tetra_list
     
-    def asign_faces(self,tetra, face_matrix, face_list):
+    def asign_faces(self,tetra, face_matrix, face_list, tetra_list):
 
         faces = []
         v = [tetra.v1,tetra.v2,tetra.v3]
@@ -514,8 +512,14 @@ class FaceTetrahedronMesh:
                         faces.append(f1)
                         if(face_list[f1].n1 == -1):
                             face_list[f1].n1 = tetra.i
+                            tetra.neighs.append(-1)
                         elif(face_list[f1].n2 == -1):
                             face_list[f1].n2 = tetra.i
+                            tetra.neighs.append(face_list[f1].n1)
+                            f_index = tetra_list[face_list[f1].n1].faces.index(f1)
+                            tetra_list[face_list[f1].n1].neighs[f_index] = tetra.i
+                            
+
                     
         v = [tetra.v2,tetra.v3,tetra.v4]
         v.sort()
@@ -527,8 +531,12 @@ class FaceTetrahedronMesh:
                         faces.append(f2)
                         if(face_list[f2].n1 == -1):
                             face_list[f2].n1 = tetra.i
+                            tetra.neighs.append(-1)
                         elif(face_list[f2].n2 == -1):
                             face_list[f2].n2 = tetra.i
+                            tetra.neighs.append(face_list[f2].n1)
+                            f_index = tetra_list[face_list[f2].n1].faces.index(f2)
+                            tetra_list[face_list[f2].n1].neighs[f_index] = tetra.i
         v = [tetra.v3,tetra.v4,tetra.v1]
         v.sort()
         for tree in face_matrix[v[0]]:
@@ -539,8 +547,12 @@ class FaceTetrahedronMesh:
                         faces.append(f3)
                         if(face_list[f3].n1 == -1):
                             face_list[f3].n1 = tetra.i
+                            tetra.neighs.append(-1)
                         elif(face_list[f3].n2 == -1):
                             face_list[f3].n2 = tetra.i
+                            tetra.neighs.append(face_list[f3].n1)
+                            f_index = tetra_list[face_list[f3].n1].faces.index(f3)
+                            tetra_list[face_list[f3].n1].neighs[f_index] = tetra.i
                         
         v = [tetra.v4,tetra.v1,tetra.v2]
         v.sort()
@@ -552,31 +564,16 @@ class FaceTetrahedronMesh:
                         faces.append(f4)
                         if(face_list[f4].n1 == -1):
                             face_list[f4].n1 = tetra.i
+                            tetra.neighs.append(-1)
                         elif(face_list[f4].n2 == -1):
                             face_list[f4].n2 = tetra.i
+                            tetra.neighs.append(face_list[f4].n1)
+                            f_index = tetra_list[face_list[f4].n1].faces.index(f4)
+                            tetra_list[face_list[f4].n1].neighs[f_index] = tetra.i
         
         tetra.faces = faces
         return
 
-    def asign_neighs(self,tetra, face_list):
-        neighs = []
-        # print(tetra.faces)
-        for face in tetra.faces:
-
-            if (face_list[face].n1 == -1 or face_list[face].n2 == -1):
-                tetra.is_boundary = True
-                face_list[face].is_boundary = True
-                
-            if face_list[face].n1 !=tetra.i: 
-                neighs.append(face_list[face].n1)
-                # print('agrega n1')
-            if not face_list[face].is_boundary:
-                if face_list[face].n2 !=tetra.i: 
-                    neighs.append(face_list[face].n2)
-            else:
-                neighs.append(-1)
-        tetra.neighs = neighs
-        
     def construct_tetrahedral_mesh(self, node_file, face_file, ele_file):
         print("Reading vertex file")
         node_list, edges_matrix,face_matrix = self.save_vertex(node_file) #self.read_node_file(node_file)
@@ -587,11 +584,7 @@ class FaceTetrahedronMesh:
         print("Reading tetra file")
         tetra_list = self.save_tetra(ele_file,face_matrix,face_list) # self.read_ele_file(ele_file)
         
-        print("Processesing faces with tetrahedorns")
-        
-        # Calculate border tetrahedron adjacent to each edge
-        for tetra in range(len(tetra_list)):
-            self.asign_neighs(tetra_list[tetra],face_list)
+        print("Tetraedralization ready")
         
 
         return node_list, face_list, tetra_list, edge_list

@@ -831,7 +831,7 @@ class PolyllaFace:
         min_tetra_num = min(tetras)
         max_tetra_num = max(tetras)
         i = tetras.index(max_tetra_num)
-        print(tetras)
+        # print(tetras)
         self.printOFF_one_poly(i,'BiggestPoly/'+str(self.mesh.n_nodes)+self.flag+'.off')
 
         return [mean_tetra_num, min_tetra_num, max_tetra_num,median_tetra_num,variance_tetra_num]
