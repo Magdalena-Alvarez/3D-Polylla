@@ -42,7 +42,8 @@ class PolyllaFace:
         for terminal_tetra in self.seed_tetra:
             polyhedron = []
             polyhedron_tetras = []
-            self.DepthFirstSearch(polyhedron, polyhedron_tetras, terminal_tetra)
+            polyhedron_nodes = []
+            self.DepthFirstSearch(polyhedron, polyhedron_tetras, polyhedron_nodes, terminal_tetra)
             #self.polyhedral_mesh.append(polyhedron)
             #check if the polyhedron has barriers faces
             barrierFaces = self.count_barrierFaces(polyhedron)
@@ -51,18 +52,26 @@ class PolyllaFace:
                 for tetra in polyhedron_tetras:
                     self.visited_tetra[tetra] = False
                 ##generate a list with all the  barrier-face tips 
-                barrierFacesTips = self.detectBarrierFaceTips(polyhedron)       
+                barrierFacesTips = self.detectBarrierFaceTips(polyhedron, list(set(polyhedron_nodes.copy())))       
                 ## Sent the polyhedron to repair
                 # print('pre repair',polyhedron)
                 # poly = Polyhedron()
                 # poly.tetras = polyhedron_tetras.copy()
                 # poly.faces = polyhedron.copy()
                 # self.polyhedral_mesh.append(poly)
-                self.repairPhase(polyhedron, barrierFacesTips) #--> al comentarla quedan iguales
+                if(len(barrierFacesTips) == 0):
+                    poly = Polyhedron()
+                    poly.tetras = polyhedron_tetras.copy()
+                    poly.faces = polyhedron.copy()
+                    poly.nodes = list(set(polyhedron_nodes.copy()))
+                    self.polyhedral_mesh.append(poly)
+                else:
+                    self.repairPhase(polyhedron, barrierFacesTips) #--> al comentarla quedan iguales
             else:
                 poly = Polyhedron()
                 poly.tetras = polyhedron_tetras.copy()
                 poly.faces = polyhedron.copy()
+                poly.nodes = list(set(polyhedron_nodes.copy()))
                 self.polyhedral_mesh.append(poly)
 
 #############################################################################################
@@ -410,7 +419,7 @@ class PolyllaFace:
 
 
     # return list of faces 
-    def DepthFirstSearch(self, polyhedron, polyhedron_tetras, tetra):
+    def DepthFirstSearch(self, polyhedron, polyhedron_tetras, polyhedron_nodes, tetra):
         self.visited_tetra[tetra] = True
         polyhedron_tetras.append(tetra)
         # not_fronteir_index = 0
@@ -430,6 +439,9 @@ class PolyllaFace:
                     #     # print('no saving', face_id)
                     # else:
                     polyhedron.append(face_id)
+                    polyhedron_nodes.append(self.mesh.face_list[face_id].v1)
+                    polyhedron_nodes.append(self.mesh.face_list[face_id].v2)
+                    polyhedron_nodes.append(self.mesh.face_list[face_id].v3)
                     #     print('saving', face_id)
                     # print(self.mesh.face_list[face_id])
                     # print(polyhedron_tetras)
@@ -438,7 +450,7 @@ class PolyllaFace:
                     next_tetra = tetra_neighs[i]
 
                     if(self.visited_tetra[next_tetra] == False):
-                        self.DepthFirstSearch(polyhedron, polyhedron_tetras, next_tetra)
+                        self.DepthFirstSearch(polyhedron, polyhedron_tetras, polyhedron_nodes, next_tetra)
         
 ############################################################################################################
 # REPAIR PHASE
@@ -452,14 +464,21 @@ class PolyllaFace:
             self.polyhedra_with_barriers += 1
         return len(repeated)
 
-    def detectBarrierFaceTips(self, terminalFace):
+    def detectBarrierFaceTips(self, terminalFace, terminalFace_nodes):
         barrierFacesTips = []
         #list of all reapeted faces
         barrierFaces = [k for k, v in Counter(terminalFace).items() if v > 1]
         #List of all edges of the barrier faces
         possibleTips = set()
         for face in barrierFaces:
-            possibleTips.update(self.mesh.face_list[face].edges)
+            if((self.mesh.face_list[face].v1 in terminalFace_nodes) and (self.mesh.face_list[face].v2 in terminalFace_nodes) and (self.mesh.face_list[face].v3 in terminalFace_nodes)):
+                tmpTermianlFace = terminalFace.copy()
+                print('No tips in face', face)
+                while terminalFace.count(face) > 0:
+                    terminalFace.remove(face)
+            else:
+                possibleTips.update(self.mesh.face_list[face].edges)
+                print('Tips in face', face)
         possibleTips = list(possibleTips)
         for e in possibleTips:
             #List of all faces incident to e
@@ -468,6 +487,7 @@ class PolyllaFace:
             L2 = len(terminalFace)
             if L2 - L1 == L2 - 1:
                 barrierFacesTips.append(e)
+                print('Tip is', e)
         return barrierFacesTips
 
 
@@ -517,14 +537,15 @@ class PolyllaFace:
                 self.bivector_seed_tetra_in_repair[tetra_curr] = False
                 new_polyhedron = []
                 new_polyhedron_tetras = []
-                self.DepthFirstSearch_in_repair(new_polyhedron, new_polyhedron_tetras, tetra_curr)
+                new_polyhedron_nodes = []
+                self.DepthFirstSearch_in_repair(new_polyhedron, new_polyhedron_tetras, tetra_curr, new_polyhedron_nodes)
                 barrierFaces_new = self.count_barrierFaces(new_polyhedron)
                 if barrierFaces_new > 0:
                     # print('re-repair')
                     for tetra in new_polyhedron_tetras:
                         self.visited_tetra[tetra] = False
                     ##generate a list with all the  barrier-face tips 
-                    barrierFacesTips_new = self.detectBarrierFaceTips(new_polyhedron)       
+                    barrierFacesTips_new = self.detectBarrierFaceTips(new_polyhedron, list(set(new_polyhedron_nodes)))       
                     ## Sent the polyhedron to repair
                     self.repairPhase(new_polyhedron, barrierFacesTips_new)
                 else:
@@ -536,7 +557,7 @@ class PolyllaFace:
                     self.polyhedral_mesh.append(poly)
 
     # return list of faces 
-    def DepthFirstSearch_in_repair(self, polyhedron, polyhedron_tetras, tetra):
+    def DepthFirstSearch_in_repair(self, polyhedron, polyhedron_tetras, tetra, nodes):
         self.visited_tetra[tetra] = True
         polyhedron_tetras.append(tetra)
         # tetra es remove as candidate for generation of poliedron
@@ -550,11 +571,14 @@ class PolyllaFace:
                 #si la cara es un frontier-face, entonces no se sigue la recursión
                 if self.bitvector_frontier_faces[face_id] == True:
                     polyhedron.append(face_id)
+                    nodes.append(self.mesh.face_list[face_id].v1)
+                    nodes.append(self.mesh.face_list[face_id].v2)
+                    nodes.append(self.mesh.face_list[face_id].v3)
                 else: #si es internal-face, se sigue la recursión por su tetra vecino
                     next_tetra = tetra_neighs[i]
                     # not_fronteir_index += 1
                     if(self.visited_tetra[next_tetra] == False):
-                        self.DepthFirstSearch_in_repair(polyhedron, polyhedron_tetras, next_tetra)
+                        self.DepthFirstSearch_in_repair(polyhedron, polyhedron_tetras, next_tetra, nodes)
 
 ############################################################################################################
 # EXTRA
@@ -627,7 +651,7 @@ class PolyllaFace:
                 fh.write("3 %d %d %d\n" % (v1, v2, v3))
 
     def printVISF_polyhedralmesh(self, filename):
-        print("writing OFF file: "+ filename)
+        print("writing VISF file: "+ filename)
         list_face = []
         for polyhedron in self.polyhedral_mesh:
             for face in polyhedron.faces:
@@ -773,8 +797,15 @@ class PolyllaFace:
         for polyhedron in self.polyhedral_mesh:
             if len(polyhedron.tetras) == 1:
                 count += 1
+        faces = 0
+        for face in self.mesh.face_list:
+            for poly in self.polyhedral_mesh:
+                if face.i in poly.faces:
+                    faces += 1
+                    break
         print("Number of polyhedrons that are tetrahedrons: " + str(count))
-        return len(self.polyhedral_mesh), self.n_barrier_faces, self.polyhedra_with_barriers, count
+        print("Number of mesh faces: " + str(faces))
+        return len(self.polyhedral_mesh), self.n_barrier_faces, self.polyhedra_with_barriers, count, faces
 
 #############################################################################################
 #POLYHEDRA METRICS
